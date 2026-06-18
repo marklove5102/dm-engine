@@ -239,12 +239,12 @@ void CrashHandler::CreateMiniDump(EXCEPTION_POINTERS* pExceptionInfo)
         if (GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc)))
         {
             fprintf(fp, "页面错误数: %lu\n", pmc.PageFaultCount);
-            fprintf(fp, "工作集大小: %I64u KB\n", pmc.WorkingSetSize / 1024);
-            fprintf(fp, "峰值工作集: %I64u KB\n", pmc.PeakWorkingSetSize / 1024);
-            fprintf(fp, "分页池大小: %I64u KB\n", pmc.QuotaPagedPoolUsage / 1024);
-            fprintf(fp, "非分页池: %I64u KB\n", pmc.QuotaNonPagedPoolUsage / 1024);
-            fprintf(fp, "页面文件使用: %I64u KB\n", pmc.PagefileUsage / 1024);
-            fprintf(fp, "峰值页面文件: %I64u KB\n", pmc.PeakPagefileUsage / 1024);
+            fprintf(fp, "工作集大小: %Iu KB\n", pmc.WorkingSetSize / 1024);
+            fprintf(fp, "峰值工作集: %Iu KB\n", pmc.PeakWorkingSetSize / 1024);
+            fprintf(fp, "分页池大小: %Iu KB\n", pmc.QuotaPagedPoolUsage / 1024);
+            fprintf(fp, "非分页池: %Iu KB\n", pmc.QuotaNonPagedPoolUsage / 1024);
+            fprintf(fp, "页面文件使用: %Iu KB\n", pmc.PagefileUsage / 1024);
+            fprintf(fp, "峰值页面文件: %Iu KB\n", pmc.PeakPagefileUsage / 1024);
         }
         fprintf(fp, "\n");
         

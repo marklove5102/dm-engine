@@ -355,7 +355,37 @@ VOID CGuildEx::DeleteGroupFromList(CGuildGroupEx* pGroup)
 	DeleteGroup(pGroup);
 }
 
-VOID CGuildEx::SendGroupFengHaoData()
+BOOL CGuildEx::ChangeGroup(const char* pszName, UINT nLevel, UINT nOldLevel)
+{
+	CGuildMemberEx* pGuildMember = GetMember(pszName);
+	if (pGuildMember == nullptr) return FALSE;
+	CGuildGroupEx* pOldGroup = pGuildMember->GetGroup();
+	if (pOldGroup && pOldGroup->GetLevel() == nLevel) return FALSE; // 已经在目标分组
+
+	CGuildGroupEx* pNewGroup = GetGroupByLevel(nLevel);
+	if (pNewGroup == nullptr) return FALSE;
+
+	if (pOldGroup) pOldGroup->RemoveMember(pGuildMember);
+	pNewGroup->AddMember(pGuildMember, TRUE);
+	Save();
+
+	char szText[256];
+	if (nLevel < 11)
+	{
+		sprintf(szText, "%s 被任命为 %s!", pszName, pNewGroup->GetName());
+		SendWords(szText);
+	}
+	else
+	{
+		sprintf(szText, "%s 被免职!", pszName);
+		SendWords(szText);
+	}
+	CHumanPlayer* p = pGuildMember->GetRefPlayer();
+	if (p) SendGuildTowerInfo(p);//如果玩家在线，刷新他的权限
+	return TRUE;
+}
+
+VOID CGuildEx::SendGroupFengHaoData(CHumanPlayer* pPlayer)
 {
 	xPacket packet(g_szTempBuffer, 65535);
 	xPacket packet1(4096);
@@ -373,17 +403,23 @@ VOID CGuildEx::SendGroupFengHaoData()
 		}
 	}
 	packet.push((LPVOID)packet1.getbuf(), packet1.getsize());
-
-	const void* pData = packet.getbuf();
-	int nSize = packet.getsize();
-	UINT nMemberCount = m_xMemberNameList.GetCount();
-	for (UINT n = 0; n < nMemberCount; n++)
+	if (pPlayer == nullptr)
 	{
-		CGuildMemberEx* pMember = (CGuildMemberEx*)m_xMemberNameList[n]->lpObject;
-		CHumanPlayer* p = nullptr;
-		if (pMember && (p = pMember->GetRefPlayer()))
-			p->SendMsg(0, 0xa11, 0, 0, 0, (LPVOID)pData, nSize);
+		const void* pData = packet.getbuf();
+		int nSize = packet.getsize();
+		UINT nMemberCount = m_xMemberNameList.GetCount();
+		for (UINT n = 0; n < nMemberCount; n++)
+		{
+			CGuildMemberEx* pMember = (CGuildMemberEx*)m_xMemberNameList[n]->lpObject;
+			CHumanPlayer* p = nullptr;
+			//封号编辑数据，只发给前10分组的成员
+			if (pMember && pMember->GetGroup()->GetLevel() <= 10 && (p = pMember->GetRefPlayer()))
+				p->SendMsg(0, 0xa11, 0, 0, 0, (LPVOID)pData, nSize);
+		}
 	}
+	else
+		pPlayer->SendMsg(0, 0xa11, 0, 0, 0, (LPVOID)packet.getbuf(), packet.getsize());
+	
 }
 
 VOID CGuildEx::SendGuildTowerInfo(CHumanPlayer* pPlayer)
@@ -395,7 +431,7 @@ VOID CGuildEx::SendGuildTowerInfo(CHumanPlayer* pPlayer)
 	packet.push(14); //本体附加属性
 	packet.push(14); //元神附加属性
 	packet.push(1); //属性打开，个人贡献
-	packet.push(GetMaster()->GetName()); //会长名字
+	packet.push(GetFirstOwnerName()); //会长名字
 	packet.push("/");
 	char szText[2048]{};
 	int offset = 0;
@@ -411,6 +447,11 @@ VOID CGuildEx::SendGuildTowerInfo(CHumanPlayer* pPlayer)
 	WORD wPermission = nGuildOfficialPermission[pLevel];
 	if (!wPermission) wPermission = 1024;
 	pPlayer->SendMsg(m_nGold, 0x340, m_nLevel, wPermission, 0, (LPVOID)packet.getbuf(), packet.getsize());
+}
+
+CGuildMemberEx* CGuildEx::GetMember(const char* pszName)
+{
+	return (CGuildMemberEx*)m_xMemberNameList.ObjectOf(pszName);
 }
 
 CGuildMemberEx* CGuildEx::GetMember(CHumanPlayer* pMember)
@@ -544,7 +585,7 @@ VOID CGuildEx::MemberLogoff(CHumanPlayer* pMember)
 		pGuildMember->SetLevel(pMember->GetPropValue(PI_LEVEL)); // 玩家离线后，刷新等级
 		pGuildMember->SetPro(pMember->GetPro()); // 玩家离线后，刷新职业
 		pGuildMember->SetRefPlayer(nullptr);
-		SendDurationMemberList(pMember);//玩家离线给所有人刷新
+		SendDurationMemberList();//玩家离线给所有人刷新
 	}
 }
 
@@ -588,7 +629,7 @@ BOOL CGuildEx::Create(CHumanPlayer* pCreator, const char* pszName)
 
 VOID CGuildEx::Init()
 {
-	SetLevel(1);//设置行会等级为1级
+	m_nLevel = 1; //设置行会等级为1级
 	AddGroupToList(NewGroup(sGuildOfficial[0], 99));//默认入会分组
 	for (int i = 2; i <= 10; i++) //创建剩下默认行会分组
 	{
@@ -980,23 +1021,27 @@ BOOL CGuildEx::SendFirstPage(CHumanPlayer* pPlayer)
 BOOL CGuildEx::SendDurationMemberList(CHumanPlayer* pPlayer)
 {
 	//	"#1/*行会会长/会长1/#2/*行会成员/成员1/成员2/"
+	char szBuffer[4096]{};
+	xPacket packet1(szBuffer, 4096);
 	xPacket packet(g_szTempBuffer, 65535);
 	char szText[256];
+	int length = 0;
 	UINT nGroupCount = 0;//有成员的组数量
 	for (UINT n = 0; n < m_nGroupCount; n++)
 	{
 		if (m_xGroups[n] && m_xGroups[n]->GetCount() > 0)
 		{
 			sprintf(szText, "#%u/*%s/", m_xGroups[n]->GetLevel(), m_xGroups[n]->GetName());
-			packet.push(szText);
-			m_xGroups[n]->AppendDurationMembers(packet);
+			packet1.push(szText);
+			m_xGroups[n]->AppendDurationMembers(packet1);
 			nGroupCount++;
 		}
 	}
-	pPlayer->SendMsg(0, 0x345, 0, 0, 0, (LPVOID)packet.getbuf(), packet.getsize());
+	length = EncodeMsg((char*)packet.getfreebuf(), 0, 0x345, 0, 0, 0, (LPVOID)packet1.getbuf(), packet1.getsize());
+	packet.addsize(length);
 	//发送行会成员数据
-	packet.clear();
-	packet.push(&nGroupCount, 2);
+	packet1.clear();
+	packet1.push(&nGroupCount, 2);
 	for (UINT n = 0; n < m_nGroupCount; n++)
 	{
 		if (m_xGroups[n] && m_xGroups[n]->GetCount() > 0)
@@ -1004,25 +1049,35 @@ BOOL CGuildEx::SendDurationMemberList(CHumanPlayer* pPlayer)
 		    UINT uLevel = m_xGroups[n]->GetLevel();
 			const char* szGroupName = m_xGroups[n]->GetName();
 			WORD uCount = m_xGroups[n]->GetCount();
-			packet.push(&uLevel, 2);//官职编号
-			packet.push(szGroupName);//官职名
-			packet.push(1);
-			packet.push(&uCount, 2);//官职人数
-			m_xGroups[n]->AppendDurationMembers2(packet);
+			packet1.push(&uLevel, 2);//分组序号
+			packet1.push(szGroupName);//分组名
+			packet1.push(1);
+			packet1.push(&uCount, 2);//分组下人数
+			m_xGroups[n]->AppendDurationMembers2(packet1);
 		}
 	}
-	const void* pData = packet.getbuf();
-	int nSize = packet.getsize();
-	UINT nMemberCount = m_xMemberNameList.GetCount();
-	for (UINT n = 0; n < nMemberCount; n++)
+	length = EncodeMsg((char*)packet.getfreebuf(), 0, 0x34a, 1, 0, 0, (LPVOID)packet1.getbuf(), packet1.getsize());
+	packet.addsize(length);
+	if (pPlayer == nullptr)
 	{
-		CGuildMemberEx* pMember = (CGuildMemberEx*)m_xMemberNameList[n]->lpObject;
-		CHumanPlayer* p = nullptr;
-		if (pMember && (p = pMember->GetRefPlayer()))
+		const char* pData = packet.getbuf();
+		int nSize = packet.getsize();
+		UINT nMemberCount = m_xMemberNameList.GetCount();
+		for (UINT n = 0; n < nMemberCount; n++)
 		{
-			p->SendMsg(0, 0x34a, 1, 0, 0, (LPVOID)pData, nSize);
-			p->UpdateViewName();
+			CGuildMemberEx* pMember = (CGuildMemberEx*)m_xMemberNameList[n]->lpObject;
+			CHumanPlayer* p = nullptr;
+			if (pMember && (p = pMember->GetRefPlayer()))
+			{
+				p->OnAroundMsg(nullptr, pData, nSize);
+				p->UpdateViewName();
+			}
 		}
+	}
+	else
+	{
+		pPlayer->OnAroundMsg(nullptr, packet.getbuf(), packet.getsize());
+		pPlayer->UpdateViewName();
 	}
 	return TRUE;
 }

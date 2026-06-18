@@ -180,13 +180,9 @@ enum e_nameindex //名字索引
 	ENI_TAOSHI,				//道士
 	ENI_TOPOFWORLD,			//世界排行榜
 	ENI_UPGRADEMINESTONE,	//升级矿石
-	ENI_FIRSTSCRIPT,		//新玩家脚本
-	ENI_LOGINSCRIPT,		//登录脚本
-	ENI_LOGOUTSCRIPT,		//登出脚本
-	ENI_LEVELUPSCRIPT,		//升级脚本
 	ENI_PHYSICSMAPPATH,		//物理地图路径
 	ENI_PHYSICSCACHEPATH,	//物理缓存路径
-	ENI_MAX,
+	ENI_MAX,				//最大索引
 };
 
 //Server.txt文件配置的var值, 数值

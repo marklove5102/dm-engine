@@ -29,7 +29,7 @@ public:
 	}
 	const char* GetName() { return m_szName; }
 	const char* GetViewName() { return m_szLongName; }
-	BOOL IsNPC()const { return m_szViewName[0] != 0; }
+	BOOL IsNPC()const { return m_bIsNpc; }
 	BOOL CanMove() { return FALSE; }
 	BOOL AddItem(ITEM& item);
 	VOID Update();
@@ -82,6 +82,7 @@ public:
 	VOID SendDayExpHelp(CHumanPlayer* pPlayer, const char* pWords);
 	VOID SendActivityMain(CHumanPlayer* pPlayer, const char* pWords);
 	VOID SendCreateGuildHelp(CHumanPlayer* pPlayer, const char* pWords);
+	VOID SendCustomUIWnd(CHumanPlayer* pPlayer, const char* pWords);
 protected:
 	BOOL OnPageShow(CScriptTarget* pTarget, CScriptView* pView, const char* pszPage);
 	NpcGoodsList* FindGoodsList(ITEM& item);
@@ -109,5 +110,6 @@ protected:
 	DWORD m_dwTimeOut;
 	BOOL m_fSandCityMerchant;
 	BOOL m_bTalk;
+	BOOL m_bIsNpc;
 	UINT m_nDistance;
 };

@@ -32,6 +32,7 @@
 #include "marketmanager.h"
 #include "systemscript.h"
 #include "BossTJ.h"
+#include "TimeAchieve.h"
 #include "GameStage.h"
 
 CClientObj::CClientObj(void)
@@ -274,25 +275,26 @@ VOID CClientObj::OnCodedMsg(xClientObject* pObject, PMIRMSG pMsg, int datasize)
 				}
 				else
 				{
-					SendMsg(0, 0xafa, 0, 0, 0, (LPVOID)"查询数据失败!");
+					m_pPlayer->SendMsg(0, 0xafa, 0, 0, 0, (LPVOID)"查询数据失败!");
 					Disconnect(3000);
 					return;
 				}
 				if (!CGameWorld::GetInstance()->AddMapObject(m_pPlayer))
 				{
-					SendMsg(0, 0xafa, 0, 0, 0, (LPVOID)"进入地图失败!");
+					m_pPlayer->SendMsg(0, 0xafa, 0, 0, 0, (LPVOID)"进入地图失败!");
 					Disconnect(3000);
 					LG2("玩家 %s 进入地图失败\n", m_pPlayer->GetName());
 					return;
 				}
+				if (m_pPlayer->IsFirstLogin())
+					m_pPlayer->AddProcess(EP_FIRSTLOGINPROCESS);
+				else
+					CSystemScript::GetInstance()->Execute(m_pPlayer->GetScriptTarget(), "LoginEnv.Login", FALSE);
+				m_pPlayer->SendMsg(m_pPlayer->GetId(), 0x9609, 0, 0, 0, (LPVOID)m_pPlayer->GetName()); //确认玩家上线
+				m_pPlayer->SendClientPluginInfo();// 发送客户端插件信息
 				m_pPlayer->SendClientKeyConfig(); // 发送自定义快捷键
-				m_pPlayer->SendIsGm(); // 发送IsGm消息
 				CBossTJ::GetInstance()->SendBossList(m_pPlayer); //登录完成后, 发送加载BOSS图鉴列表数据
 				m_State = GSUM_VERIFIED;
-				if (m_pPlayer->IsFirstLogin())
-					m_pPlayer->AddProcess(EP_FIRSTLOGINPROCESS, 0, 0, 0, 0, 0);
-				CSystemScript::GetInstance()->Execute(m_pPlayer->GetScriptTarget(), CGameWorld::GetInstance()->GetName(ENI_LOGINSCRIPT));
-				SendMsg(m_pPlayer->GetId(), 0x9609, 0, 0, 0, (LPVOID)m_pPlayer->GetName()); //确认玩家上线
 			}
 		}
 		break;
@@ -330,7 +332,7 @@ VOID CClientObj::OnDisconnect()
 	}
 	if (m_pPlayer != nullptr)
 	{
-		CSystemScript::GetInstance()->Execute(m_pPlayer->GetScriptTarget(), CGameWorld::GetInstance()->GetName(ENI_LOGOUTSCRIPT));
+		CSystemScript::GetInstance()->Execute(m_pPlayer->GetScriptTarget(), "LogoutEnv.Logout", FALSE);
 		if (m_pPlayer->GetGuild()) // 行会处理
 			m_pPlayer->GetGuild()->MemberLogoff(m_pPlayer);
 		if (m_pPlayer->GetExchangeObject() != nullptr) // 交易处理
@@ -378,7 +380,7 @@ VOID CClientObj::SendAddItem(ITEM& item)
 {
 	ITEMCLIENT clientItem{};
 	memcpy(&clientItem, &item, sizeof(ITEMCLIENT));
-	SendMsg(m_pPlayer->GetId(), SM_ADDBAGITEM, 0, 0, 0, &clientItem, sizeof(ITEMCLIENT));
+	m_pPlayer->SendMsg(m_pPlayer->GetId(), SM_ADDBAGITEM, 0, 0, 0, &clientItem, sizeof(ITEMCLIENT));
 }
 
 //处理客户端的消息
@@ -404,18 +406,18 @@ VOID CClientObj::ProcClientMsg(PMIRMSG pMsg, int datasize)
 		if (wPersonCode > 0)
 		{
 			m_pPlayer->SetPersonCode(wPersonCode);
-			SendMsg(m_pPlayer->GetId(), 0x9593, 3, 1, 0); // 同步确认
+			m_pPlayer->SendMsg(m_pPlayer->GetId(), 0x9593, 3, 1, 0); // 同步确认
 		}
 		PersonSetting* pPersonSetting = (PersonSetting*)pMsg->data;
 		if (pPersonSetting->szPersonSign[0] != 0) // 个性化签名
 		{ 
 			m_pPlayer->SetPersonSign(pPersonSetting->szPersonSign);
-			SendMsg(m_pPlayer->GetId(), 0x9593, 1, 0, wPersonCode, pPersonSetting->szPersonSign);
+			m_pPlayer->SendMsg(m_pPlayer->GetId(), 0x9593, 1, 0, wPersonCode, pPersonSetting->szPersonSign);
 		}
 		if (pPersonSetting->szTempBan[0] != 0) // 临时称号
 		{
 			m_pPlayer->SetTempRank(pPersonSetting->szTempBan);
-			SendMsg(m_pPlayer->GetId(), 0x9593, 2, 0, 0, pPersonSetting->szTempBan);
+			m_pPlayer->SendMsg(m_pPlayer->GetId(), 0x9593, 2, 0, 0, pPersonSetting->szTempBan);
 		}
 	}
 	break;
@@ -437,10 +439,10 @@ VOID CClientObj::ProcClientMsg(PMIRMSG pMsg, int datasize)
 			packet.push((LPVOID)&nValue, 4);
 			nValue = 1;
 			packet.push((LPVOID)&nValue, 4);
-			SendMsg(m_pPlayer->GetId(), 0xa06, 0, 0, 0, (LPVOID)packet.getbuf(), packet.getsize());
+			m_pPlayer->SendMsg(m_pPlayer->GetId(), 0xa06, 0, 0, 0, (LPVOID)packet.getbuf(), packet.getsize());
 		}
 		else
-			SendMsg(m_pPlayer->GetId(), 0xa06, pMsg->wParam[0], 0, 0);
+			m_pPlayer->SendMsg(m_pPlayer->GetId(), 0xa06, pMsg->wParam[0], 0, 0);
 	}
 	break;
 	case 0x310: // 点头像框请求拜师
@@ -456,7 +458,7 @@ VOID CClientObj::ProcClientMsg(PMIRMSG pMsg, int datasize)
 			else if (m_pPlayer->GetPropValue(PI_LEVEL) < 28)
 				m_pPlayer->SaySystem("你的等级不够, 不能收徒!");
 			else if (pObject->GetPropValue(PI_LEVEL) >= 28)
-				SendMsg(m_pPlayer->GetId(), 0x310, 258, 12, 0, "对方等级太高");
+				m_pPlayer->SendMsg(m_pPlayer->GetId(), 0x310, 258, 12, 0, "对方等级太高");
 			else if (pObject->HasMaster())
 				m_pPlayer->SaySystem("对方已经有师傅!");
 			else
@@ -470,7 +472,7 @@ VOID CClientObj::ProcClientMsg(PMIRMSG pMsg, int datasize)
 			else if (pObject->GetPropValue(PI_LEVEL) < 28)
 				m_pPlayer->SaySystem("对方等级不够!");
 			else if (m_pPlayer->GetPropValue(PI_LEVEL) >= 28)
-				SendMsg(m_pPlayer->GetId(), 0x310, 258, 12, 0, "你的等级太高");
+				m_pPlayer->SendMsg(m_pPlayer->GetId(), 0x310, 258, 12, 0, "你的等级太高");
 			else if (m_pPlayer->HasMaster())
 				m_pPlayer->SaySystem("你已经有师傅!");
 			else
@@ -541,7 +543,10 @@ VOID CClientObj::ProcClientMsg(PMIRMSG pMsg, int datasize)
 	{
 		if (pMsg->wParam[0] == 0) // 0、自己点的; 1、升级时的
 		{
-			SendMsg(m_pPlayer->GetId(), 0x9702, 47, 0, 0);
+			//p1 值是按照位计算，开启不同排行榜
+			//p1排名类型：英雄等级榜、天下名师榜、元神封神榜、天地灵兽榜、行会风云榜、宗族权势榜、天地仙兽榜、天地神龙榜
+			//p2特殊类型：军衔等级榜、镇魔排名榜、万兽谱排名、战斗力榜、恶人排名榜、骑术排行榜
+			m_pPlayer->SendMsg(m_pPlayer->GetId(), 0x9702, 35, 0, 0); //35的意思是只开启英雄排行、名师排行、行会排行
 		}
 	}
 	case 0x9703: //查询英雄排行榜数据
@@ -612,6 +617,11 @@ VOID CClientObj::ProcClientMsg(PMIRMSG pMsg, int datasize)
 	case 0x8897:// 宠物属性
 	{
 		m_pPlayer->ShowPetInfo();
+	}
+	break;
+	case 0x959: //成就系统 TimeAchieve.xml
+	{
+		CTimeAchieve::GetInstance()->SendAchieveData(m_pPlayer);
 	}
 	break;
 	case 0x88a6: // 灵兽弹窗-时长区
@@ -774,7 +784,7 @@ VOID CClientObj::ProcClientMsg(PMIRMSG pMsg, int datasize)
 				pGuild->DelApplyPlayer(pszCharName); // 从列表中删除
 				if (*boAllow == 0) // 同意
 				{
-					pGuild->SendDurationMemberList(m_pPlayer);
+					pGuild->SendDurationMemberList();
 					CHumanPlayer* pPlayer = CHumanPlayerMgr::GetInstance()->FindbyName(pszCharName);
 					if (pPlayer) // 如果玩家在线
 					{
@@ -783,7 +793,7 @@ VOID CClientObj::ProcClientMsg(PMIRMSG pMsg, int datasize)
 						else if (pPlayer->GetPropValue(PI_LEVEL) > 0 && pGuild->AddMember(pPlayer))
 						{
 							m_pPlayer->SaySystem("成功招募了行会成员 %s.", pszCharName);
-							pGuild->SendDurationMemberList(pPlayer);
+							pGuild->SendDurationMemberList();
 							pPlayer->UpdateViewName();//招募者的显示名字
 						}
 						else
@@ -923,6 +933,59 @@ VOID CClientObj::ProcClientMsg(PMIRMSG pMsg, int datasize)
 			if (pBossTJ->btCode == 2 && pBossTJ->nNum == 1)//单个BOSS数据
 				CBossTJ::GetInstance()->SendBoss(m_pPlayer, pBossTJ->sName);
 		}
+		else if (_stricmp(pMsg->data, "chatglog2023") == 0) // 聊天记录
+		{
+
+		}
+		else//自定义
+		{
+			char szPage[32];
+			sprintf(szPage, "自定义界面.%s", pMsg->data);
+
+			const BYTE* p = (const BYTE*)pMsg->data;
+			int pos = 0;
+			auto ReadInt = [&](int& n) { 
+				memcpy(&n, p + pos, 4);
+				pos += 4;
+			};
+			m_pPlayer->GetScriptTarget()->SetVariableValue("CustomActName", (char*)p + pos);
+			// 跳过 ActName
+			pos += strlen((char*)p) + 1;
+			// ActType
+			int nActType;
+			char szActType[16];
+			ReadInt(nActType);
+			sprintf(szActType, "%d", nActType);
+			m_pPlayer->GetScriptTarget()->SetVariableValue("CustomActType", szActType);
+			// StrList
+			int nStrCount;
+			char szStrCount[16];
+			ReadInt(nStrCount);
+			sprintf(szStrCount, "%d", nStrCount);
+			m_pPlayer->GetScriptTarget()->SetVariableValue("CustomStrCount", szStrCount);
+			for (int i = 0; i < nStrCount; i++) {
+				char szVar[8];
+				sprintf(szVar, "CustomS%d", i + 1);
+				m_pPlayer->GetScriptTarget()->SetVariableValue(szVar, (char*)p + pos);
+				pos += strlen((char*)p + pos) + 1;
+			}
+			// IntList
+			int nIntCount;
+			char szIntCount[16];
+			ReadInt(nIntCount);
+			sprintf(szIntCount, "%d", nIntCount);
+			m_pPlayer->GetScriptTarget()->SetVariableValue("CustomIntCount", szIntCount);
+			for (int i = 0; i < nIntCount; i++) {
+				int nVal;
+				ReadInt(nVal);
+				char szVar[8], szVal[16];
+				sprintf(szVar, "CustomN%d", i + 1);
+				sprintf(szVal, "%d", nVal);
+				m_pPlayer->GetScriptTarget()->SetVariableValue(szVar, szVal);
+				pos += 4;
+			}
+			CSystemScript::GetInstance()->Execute(m_pPlayer->GetScriptTarget(), szPage);
+		}
 	}
 	break;
 	case 0x345: // 时长区-行会成员列表
@@ -996,7 +1059,7 @@ VOID CClientObj::ProcClientMsg(PMIRMSG pMsg, int datasize)
 	case 0x5eb3: // 请求摆摊
 	{
 		if (pMsg->wParam[0] == 5)
-			SendMsg(m_pPlayer->GetId(), 0x80D5, 5, 0, 0);
+			m_pPlayer->SendMsg(m_pPlayer->GetId(), 0x80D5, 5, 0, 0);
 	}
 	break;
 	case 0x6891://创建行会
@@ -1007,9 +1070,9 @@ VOID CClientObj::ProcClientMsg(PMIRMSG pMsg, int datasize)
 	case 0x40://骑马 下马
 	{
 		if (m_pPlayer->RideHorse())
-			SendMsg(1, 0xcd, 0, 0, 0); // 上马
+			m_pPlayer->SendMsg(1, 0xcd, 0, 0, 0); // 上马
 		else
-			SendMsg(0, 0xcd, 0, 0, 0); // 下马
+			m_pPlayer->SendMsg(0, 0xcd, 0, 0, 0); // 下马
 	}
 	break;
 	case 0xaaa:
@@ -1045,9 +1108,9 @@ VOID CClientObj::ProcClientMsg(PMIRMSG pMsg, int datasize)
 		if (pNpc != nullptr)
 		{
 			if (m_pPlayer->TakeBankItem(dwItemId))
-				SendMsg(dwItemId, 0x2c1, 0, 0, 0);
+				m_pPlayer->SendMsg(dwItemId, 0x2c1, 0, 0, 0);
 			else
-				SendMsg(dwItemId, 0x2c2, 0, 0, 0);
+				m_pPlayer->SendMsg(dwItemId, 0x2c2, 0, 0, 0);
 		}
 	}
 	break;
@@ -1058,9 +1121,9 @@ VOID CClientObj::ProcClientMsg(PMIRMSG pMsg, int datasize)
 		if (pNpc != nullptr)
 		{
 			if (m_pPlayer->PutBankItem(dwItemId))
-				SendMsg(dwItemId, 0x2bd, 0, 0, 0);
+				m_pPlayer->SendMsg(dwItemId, 0x2bd, 0, 0, 0);
 			else
-				SendMsg(dwItemId, 0x2be, 0, 0, 0);
+				m_pPlayer->SendMsg(dwItemId, 0x2be, 0, 0, 0);
 		}
 	}
 	break;
@@ -1080,7 +1143,7 @@ VOID CClientObj::ProcClientMsg(PMIRMSG pMsg, int datasize)
 		if (pNpc != nullptr)
 		{
 			if (!pNpc->QueryItemList(m_pPlayer, pMsg->data, pMsg->wParam[0]))
-				SendMsg(-1, 0x028B, 0, 0, 0);
+				m_pPlayer->SendMsg(-1, 0x028B, 0, 0, 0);
 		}
 	}
 	break;
@@ -1092,12 +1155,12 @@ VOID CClientObj::ProcClientMsg(PMIRMSG pMsg, int datasize)
 			ITEM* pItem = m_pPlayer->FindBagItem(*(DWORD*)&pMsg->wParam[0]);
 			if (pItem && pNpc->SellItem(m_pPlayer, *pItem))
 			{
-				SendMsg(m_pPlayer->GetMoney(MT_GOLD), 0x288, 0, 0, 0);
+				m_pPlayer->SendMsg(m_pPlayer->GetMoney(MT_GOLD), 0x288, 0, 0, 0);
 				m_pPlayer->SendWeightChanged();
 				break;
 			}
 		}
-		SendMsg(-1, 0x289, 0, 0, 0);//649
+		m_pPlayer->SendMsg(-1, 0x289, 0, 0, 0);//649
 	}
 	break;
 	case 0x3f4:
@@ -1107,11 +1170,9 @@ VOID CClientObj::ProcClientMsg(PMIRMSG pMsg, int datasize)
 		{
 			ITEM* pItem = m_pPlayer->FindBagItem(*(DWORD*)&pMsg->wParam[0]);
 			if (pItem)
-			{
-				SendMsg(pNpc->GetItemSellPrice(*pItem), 0x287, 0, 0, 0);
-			}
+				m_pPlayer->SendMsg(pNpc->GetItemSellPrice(*pItem), 0x287, 0, 0, 0);
 			else
-				SendMsg(0, 0x287, 0, 0, 0);
+				m_pPlayer->SendMsg(0, 0x287, 0, 0, 0);
 		}
 	}
 	break;
@@ -1138,7 +1199,7 @@ VOID CClientObj::ProcClientMsg(PMIRMSG pMsg, int datasize)
 				break;
 			}
 			pGuild->RemoveMember(pszCharName);
-			pGuild->SendDurationMemberList(m_pPlayer);
+			pGuild->SendDurationMemberList();
 			CHumanPlayer* pPlayer = CHumanPlayerMgr::GetInstance()->FindbyName(pszCharName);
 			if (pPlayer) pPlayer->UpdateViewName();
 		}
@@ -1154,7 +1215,7 @@ VOID CClientObj::ProcClientMsg(PMIRMSG pMsg, int datasize)
 			m_pPlayer->GetGuild()->SetNotice(pMsg->data);
 			char buffer[4096];
 			int size = m_pPlayer->GetGuildFrontPage(buffer, 4096);
-			SendMsg(0, 0x2f1, 0, 0, 0, (LPVOID)buffer, size);
+			m_pPlayer->SendMsg(0, 0x2f1, 0, 0, 0, (LPVOID)buffer, size);
 			pGuild->SendFirstPage(m_pPlayer);
 		}
 		else
@@ -1175,6 +1236,7 @@ VOID CClientObj::ProcClientMsg(PMIRMSG pMsg, int datasize)
 		{
 			CGuildGroupEx* pGroup = pGuild->NewGroup("成员");
 			pGuild->AddGroupToList(pGroup);
+			pGuild->Save();
 			pGuild->SendGroupFengHaoData();
 		}
 		break;
@@ -1183,13 +1245,13 @@ VOID CClientObj::ProcClientMsg(PMIRMSG pMsg, int datasize)
 			WORD nLevel = pMsg->wParam[1];//封号编号
 			if (nLevel == 0 || nLevel > 99)
 			{
-				SendMsg(-7, 0x2f9, 0, 0, 0);	//职位重复或者出错
+				m_pPlayer->SendMsg(-7, 0x2f9, 0, 0, 0);	//职位重复或者出错
 				break;
 			}
 			char* pszGroupName = (char*)pMsg->data; // 封号名
 			if (!pGuild->IsProperName(pszGroupName))
 			{
-				SendMsg(-15, 0x2f9, 0, 0, 0);	//行会成员封号包含禁止字符
+				m_pPlayer->SendMsg(-15, 0x2f9, 0, 0, 0);	//行会成员封号包含禁止字符
 				break;
 			}
 			if (strlen(pszGroupName) > 16)
@@ -1198,17 +1260,33 @@ VOID CClientObj::ProcClientMsg(PMIRMSG pMsg, int datasize)
 			}
 			CGuildGroupEx* pGroup = pGuild->GetGroupByLevel(nLevel);
 			pGroup->SetName(pszGroupName);
+			pGuild->Save();
 			pGuild->SendGroupFengHaoData();
 			pGuild->SendDurationMemberList(m_pPlayer);
 		}
 		break;
 		case 4: // 任职、免职
 		{
-			//待完善
+			char* pszCharName = (char*)pMsg->data; //任职玩家名
+			if (strcmp(m_pPlayer->GetName(), pszCharName) == 0)
+			{
+				m_pPlayer->SaySystem("不能对自己进行免职和任职操作!");
+				break;
+			}
+			if (strcmp(pGuild->GetFirstOwnerName(), pszCharName) == 0)
+			{
+				m_pPlayer->SaySystem("不能对掌门人进行免职和任职操作!");
+				break;
+			}
+			WORD nLevel = pMsg->wParam[2];//任职的封号编号
+			WORD nOldLevel = pMsg->wParam[1];//旧职的封号编号
+			if (pGuild->ChangeGroup(pszCharName, nLevel, nOldLevel))
+				pGuild->SendDurationMemberList();
+			else
+				m_pPlayer->SaySystem("免职或任职操作失败!");
 		}
 		break;
 		}
-		pGuild->Save();
 	}
 	break;
 	case 0x412: //察看行会经验值
@@ -1222,10 +1300,11 @@ VOID CClientObj::ProcClientMsg(PMIRMSG pMsg, int datasize)
 	{
 		CGuildEx* pGuild = m_pPlayer->GetGuild();
 		if (pGuild == nullptr)
-			SendMsg(0, 0x2f2, 0, 0, 0);	//尚未加入门派弹窗
+			m_pPlayer->SendMsg(0, 0x2f2, 0, 0, 0);	//尚未加入门派弹窗
 		else
 		{
 			pGuild->SendFirstPage(m_pPlayer);
+			pGuild->SendGroupFengHaoData(m_pPlayer);
 			pGuild->SendGuildTowerInfo(m_pPlayer);
 		}
 	}
@@ -1234,14 +1313,9 @@ VOID CClientObj::ProcClientMsg(PMIRMSG pMsg, int datasize)
 	{
 		switch (pMsg->wParam[0])
 		{
-		case 6: 
+		case 6: //打开社交弹窗-人脉选项卡刷新数据
 		{
-			CGuildEx* pGuild = m_pPlayer->GetGuild();
-			if (pGuild)
-			{
-				pGuild->SendGroupFengHaoData();
-				pGuild->SendDurationMemberList(m_pPlayer);
-			}
+			m_pPlayer->UpdateCommunityInfoToClient();
 		}
 		break;
 		}
@@ -1282,7 +1356,7 @@ VOID CClientObj::ProcClientMsg(PMIRMSG pMsg, int datasize)
 		{
 			minimap = pMap->GetMiniMap();
 		}
-		SendMsg(m_pPlayer->GetId(), 0x2c6, minimap & 0xffff, 0, 0, 0, 0);
+		m_pPlayer->SendMsg(m_pPlayer->GetId(), 0x2c6, minimap & 0xffff, 0, 0, 0, 0);
 	}
 	break;
 	case 0x3f6://购买摆摊物品
@@ -1295,13 +1369,9 @@ VOID CClientObj::ProcClientMsg(PMIRMSG pMsg, int datasize)
 			DWORD dwError = 0;
 			// 因为 pMsg->data 这里的数据前4个字节是空, 所以需要从第4个字节开始指针.
 			if (pNpc != nullptr && pNpc->BuyItem(m_pPlayer, (char*)&pMsg->data[4], *(DWORD*)&pMsg->wParam[0], dwError))
-			{
-				SendMsg(m_pPlayer->GetMoney(MT_GOLD), 0x28a, pMsg->wParam[0], pMsg->wParam[1], 0);
-			}
+				m_pPlayer->SendMsg(m_pPlayer->GetMoney(MT_GOLD), 0x28a, pMsg->wParam[0], pMsg->wParam[1], 0);
 			else
-			{
-				SendMsg(dwError, 0x28b, 0, 0, 0);
-			}
+				m_pPlayer->SendMsg(dwError, 0x28b, 0, 0, 0);
 		}
 		else if (pObject->GetType() == OBJ_PLAYER)
 		{
@@ -1337,7 +1407,7 @@ VOID CClientObj::ProcClientMsg(PMIRMSG pMsg, int datasize)
 				pNpc->QuerySelectLink(m_pPlayer, "@~repair");
 		}
 		else
-			SendMsg(0, 0x029E, 0, 0, 0);
+			m_pPlayer->SendMsg(0, 0x029E, 0, 0, 0);
 	}
 	break;
 	case 0x400:	//放入待修理物品
@@ -1349,7 +1419,7 @@ VOID CClientObj::ProcClientMsg(PMIRMSG pMsg, int datasize)
 		if (pItem != nullptr && pNpc != nullptr)
 		{
 			DWORD dwMoney = pNpc->GetItemRepairPrice(m_pPlayer, *pItem);
-			SendMsg(dwMoney, 0x29f, 0, 0, 0, nullptr);
+			m_pPlayer->SendMsg(dwMoney, 0x29f, 0, 0, 0, nullptr);
 		}
 	}
 	break;
@@ -1408,7 +1478,7 @@ VOID CClientObj::ProcClientMsg(PMIRMSG pMsg, int datasize)
 			xPacket packet(g_szTempBuffer, 65535);
 			pPlayer->GetViewDetail(packet);
 			//p1低位是行会图标,高位是物品长度、p2高位穿戴物品最大数量
-			SendMsg(pPlayer->GetId(), 0x2ef, 0, MAKEWORD(0, _U_MAX), MAKEWORD(0, 1), (LPVOID)packet.getbuf(), packet.getsize());
+			m_pPlayer->SendMsg(pPlayer->GetId(), 0x2ef, 0, MAKEWORD(0, _U_MAX), MAKEWORD(0, 1), (LPVOID)packet.getbuf(), packet.getsize());
 		}
 	}
 	break;
@@ -1432,10 +1502,10 @@ VOID CClientObj::ProcClientMsg(PMIRMSG pMsg, int datasize)
 		if (m_pPlayer->PutTradeMoney((money_type)pMsg->wParam[0], pMsg->dwFlag))
 		{
 			DWORD dwCurMoney = m_pPlayer->GetMoney((money_type)pMsg->wParam[0]);
-			SendMsg(pMsg->dwFlag, SM_PUTTRADEGOLDOK, dwCurMoney & 0xffff, (dwCurMoney >> 16), pMsg->wParam[0]);
+			m_pPlayer->SendMsg(pMsg->dwFlag, SM_PUTTRADEGOLDOK, dwCurMoney & 0xffff, (dwCurMoney >> 16), pMsg->wParam[0]);
 		}
 		else
-			SendMsg(0, SM_PUTTRADEGOLDFAIL, 0, 0, 0);
+			m_pPlayer->SendMsg(0, SM_PUTTRADEGOLDFAIL, 0, 0, 0);
 	}
 	break;
 	case CM_QUERYTRADEEND:
@@ -1446,9 +1516,9 @@ VOID CClientObj::ProcClientMsg(PMIRMSG pMsg, int datasize)
 	case CM_PUTTRADEITEM:
 	{
 		if (m_pPlayer->PutTradeItem(pMsg->dwFlag))
-			SendMsg(0, SM_PUTTRADEITEMOK, 0, 0, 0, 0);
+			m_pPlayer->SendMsg(0, SM_PUTTRADEITEMOK, 0, 0, 0, 0);
 		else
-			SendMsg(0, SM_PUTTRADEITEMOK, 0, 0, 0, 0);
+			m_pPlayer->SendMsg(0, SM_PUTTRADEITEMOK, 0, 0, 0, 0);
 	}
 	break;
 	case CM_QUERYTRADE:
@@ -1470,11 +1540,11 @@ VOID CClientObj::ProcClientMsg(PMIRMSG pMsg, int datasize)
 	{
 		if (m_pPlayer->DropBagItem(pMsg->dwFlag))
 		{
-			SendMsg(pMsg->dwFlag, 0x258, 0, 0, 0);
+			m_pPlayer->SendMsg(pMsg->dwFlag, 0x258, 0, 0, 0);
 			m_pPlayer->SendWeightChanged();
 		}
 		else
-			SendMsg(pMsg->dwFlag, 0x259, 0, 0, 0);
+			m_pPlayer->SendMsg(pMsg->dwFlag, 0x259, 0, 0, 0);
 	}
 	break;
 	case CM_PICKUPITEM:
@@ -1583,7 +1653,7 @@ VOID CClientObj::ProcClientMsg(PMIRMSG pMsg, int datasize)
 	break;
 	case 0x3d3:
 	{
-		SendMsg(pMsg->dwFlag, 0x3d4, 0, 0, 0, nullptr);
+		m_pPlayer->SendMsg(pMsg->dwFlag, 0x3d4, 0, 0, 0, nullptr);
 	}
 	break;
 	case CM_TURN:
@@ -1668,10 +1738,10 @@ VOID CClientObj::SendEquipItemResult(BOOL bSuccess, int pos, DWORD dwMakeIndex)
 	{
 		wCmd = SM_TAKEON_FAIL;
 		dwFeather = 0xffffffff;
-		SendMsg(dwFeather, wCmd, 0, 0, 0, nullptr);
+		m_pPlayer->SendMsg(dwFeather, wCmd, 0, 0, 0, nullptr);
 		return;
 	}
-	SendMsg(dwFeather, wCmd, 0, 0, 0, nullptr);
+	m_pPlayer->SendMsg(dwFeather, wCmd, 0, 0, 0, nullptr);
 	m_pPlayer->SendFeatureChanged();//41外观信息
 	m_pPlayer->UpdateProp();  //更新52人物信息
 	m_pPlayer->UpdateSubProp(); //更新人物附加属性752
@@ -1687,11 +1757,11 @@ VOID CClientObj::SendUnEquipItemResult(BOOL bSuccess, int pos, DWORD dwMakeIndex
 	{
 		wCmd = SM_TAKEOFF_FAIL;
 		dwFeather = 0xffffffff;
-		SendMsg(dwFeather, wCmd, 0, 0, 0, nullptr);
+		m_pPlayer->SendMsg(dwFeather, wCmd, 0, 0, 0, nullptr);
 		return;
 	}
-	SendMsg(dwFeather, wCmd, 0, 0, 0, nullptr);
-	SendMsg(0, 0x26c, 0, 0, 0);
+	m_pPlayer->SendMsg(dwFeather, wCmd, 0, 0, 0, nullptr);
+	m_pPlayer->SendMsg(0, 0x26c, 0, 0, 0);
 	m_pPlayer->SendFeatureChanged();
 	m_pPlayer->UpdateProp();
 	m_pPlayer->UpdateSubProp();
@@ -1729,7 +1799,7 @@ VOID CClientObj::SendClientNewMail(WORD Parm1, WORD Parm2, WORD Parm3)
 	}
 	break;
 	}
-	SendMsg(m_pPlayer->GetId(), 0x9A2, Parm1, Parm2, Parm3, (LPVOID)packet.getbuf(), packet.getsize());
+	m_pPlayer->SendMsg(m_pPlayer->GetId(), 0x9A2, Parm1, Parm2, Parm3, (LPVOID)packet.getbuf(), packet.getsize());
 }
 
 VOID CClientObj::SendBagItems(DBITEM* pItems, int count)
@@ -1741,7 +1811,7 @@ VOID CClientObj::SendBagItems(DBITEM* pItems, int count)
 	{
 		items[i] = *(ITEMCLIENT*)&pItems[i].item;
 	}
-	SendMsg(m_pPlayer->GetId(), SM_BAGINFO, 0, 0, count, items, sizeof(ITEMCLIENT) * count);
+	m_pPlayer->SendMsg(m_pPlayer->GetId(), SM_BAGINFO, 0, 0, count, items, sizeof(ITEMCLIENT) * count);
 	// 背包物品位置数据
 	static thread_local BAGITEMPOS itempos[BIGBAG_SLOT]{};
 	for (int i = 0; i < count; i++)
@@ -1750,14 +1820,14 @@ VOID CClientObj::SendBagItems(DBITEM* pItems, int count)
 		itempos[i].wPos = pItems[i].pos;
 	}
 	if (m_pPlayer) m_pPlayer->SetBagItemPos(itempos, count);
-	SendMsg(0, SM_SETITEMPOSITION, 0, 0, count, (LPVOID)itempos, sizeof(BAGITEMPOS) * count);
+	m_pPlayer->SendMsg(0, SM_SETITEMPOSITION, 0, 0, count, (LPVOID)itempos, sizeof(BAGITEMPOS) * count);
 }
 
 VOID CClientObj::SendEquipments()
 {
 	EQUIPMENT equipments[20];
 	int count = m_pPlayer->GetEquipments(equipments);
-	SendMsg(0, SM_EQUIPMENTS, 0, 0, 0, (LPVOID)equipments, sizeof(EQUIPMENT) * count);
+	m_pPlayer->SendMsg(0, SM_EQUIPMENTS, 0, 0, 0, (LPVOID)equipments, sizeof(EQUIPMENT) * count);
 	m_pPlayer->SendFeatureChanged();
 	m_pPlayer->UpdateProp();
 	m_pPlayer->UpdateSubProp();

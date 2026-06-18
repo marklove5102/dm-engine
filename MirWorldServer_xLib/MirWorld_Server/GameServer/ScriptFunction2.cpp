@@ -1761,6 +1761,104 @@ DEFINE_SCRIPT_FUNCTION(SETFENGHAOGROW) {
 }END_SCRIPT_FUNCTION
 
 //----------------------------------------------------------------------------------------------------------------------------------------------------------
+//		描述：调整成就组进度值
+//		注释： 参数1 ：成就组ID 参数2 ：操作符 （+ 、- 、=） 参数3 ：值
+//		此命令执行后，将调整指定成就组内所有的成就ID进度值，满足成就总进度，引擎将自动完成成就！
+//----------------------------------------------------------------------------------------------------------------------------------------------------------
+DEFINE_SCRIPT_FUNCTION(CHANGEACHIEVEGROUPEXP) {
+	if (nParam == 3)
+	{
+		switch (Params[1].pszParam[0])
+		{
+		case '+':
+			return pPlayer->ChangeAchieveGroupExp(Params[0].nParam, 0, Params[2].nParam);
+		case '-':
+			return pPlayer->ChangeAchieveGroupExp(Params[0].nParam, 1, Params[2].nParam);
+		case '=':
+			return pPlayer->ChangeAchieveGroupExp(Params[0].nParam, 2, Params[2].nParam);
+		default:
+			return FALSE;
+		}
+	}
+	return FALSE;
+}END_SCRIPT_FUNCTION
+
+//----------------------------------------------------------------------------------------------------------------------------------------------------------
+//		描述：调整指定成就ID进度值
+//		注释： 参数1 ：成就ID 参数2 ：操作符 （+ 、- 、=） 参数3 ：值
+//----------------------------------------------------------------------------------------------------------------------------------------------------------
+DEFINE_SCRIPT_FUNCTION(CHANGEACHIEVEEXP) {
+	if (nParam == 3)
+	{
+		switch (Params[1].pszParam[0])
+		{
+		case '+':
+			return pPlayer->ChangeAchieveExp(Params[0].nParam, 0, Params[2].nParam);
+		case '-':
+			return pPlayer->ChangeAchieveExp(Params[0].nParam, 1, Params[2].nParam);
+		case '=':
+			return pPlayer->ChangeAchieveExp(Params[0].nParam, 2, Params[2].nParam);
+		default:
+			return FALSE;
+		}
+	}
+	return FALSE;
+}END_SCRIPT_FUNCTION
+
+//----------------------------------------------------------------------------------------------------------------------------------------------------------
+//		描述：调整指定成就ID状态
+//		注释： 参数1 ：成就ID 参数2 ：状态值 （ 0：未完成，1：已完成/可领取，2：已领取）
+//----------------------------------------------------------------------------------------------------------------------------------------------------------
+DEFINE_SCRIPT_FUNCTION(SETACHIEVESTATE) {
+	if (nParam == 2)
+		return pPlayer->SetAchieveState(Params[0].nParam, Params[1].nParam);
+	return FALSE;
+}END_SCRIPT_FUNCTION
+
+//----------------------------------------------------------------------------------------------------------------------------------------------------------
+//		描述：调整指定成就ID完成时间
+//		注释： 参数1 ：成就ID 参数2 ：完成时间 （需要使用此时间变量 <$DATETIMETOWOLTIME(2018-11-11-18:00:00)> ）
+//----------------------------------------------------------------------------------------------------------------------------------------------------------
+DEFINE_SCRIPT_FUNCTION(SETACHIEVETIME) {
+	if (nParam == 2)
+		return pPlayer->SetAchieveTime(Params[0].nParam, Params[1].nParam);
+	return FALSE;
+}END_SCRIPT_FUNCTION
+
+//----------------------------------------------------------------------------------------------------------------------------------------------------------
+//		描述：发送更新指定成就相关信息
+//		注释： 参数1 ：成就ID
+//----------------------------------------------------------------------------------------------------------------------------------------------------------
+DEFINE_SCRIPT_FUNCTION(SENDGOTACHIEVE) {
+	if (nParam == 1)
+		return pPlayer->SendGotAchieve(Params[0].nParam);
+	return FALSE;
+}END_SCRIPT_FUNCTION
+
+//----------------------------------------------------------------------------------------------------------------------------------------------------------
+//		描述：调整玩家成就点
+//		注释： 参数1 ：操作符 （ + 、- ） 参数2 ：值
+//----------------------------------------------------------------------------------------------------------------------------------------------------------
+DEFINE_SCRIPT_FUNCTION(CHANGEACHIEVEPOINT) {
+	if (nParam == 2)
+	{
+		switch (Params[0].pszParam[0])
+		{
+		case '+':
+			return pPlayer->ChangeAchievePoint(0, Params[1].nParam);
+		case '-':
+			return pPlayer->ChangeAchievePoint(1, Params[1].nParam);
+		case '=':
+			return pPlayer->ChangeAchievePoint(2, Params[1].nParam);
+		default:
+			return FALSE;
+		}
+		return TRUE;
+	}
+	return FALSE;
+}END_SCRIPT_FUNCTION
+
+//----------------------------------------------------------------------------------------------------------------------------------------------------------
 //		描述：宝箱开启
 //		参数1：宝箱类型（1赤金灵匣, 2白银灵匣, 3神秘灵匣, 4青木灵匣）
 //		参数2：物品列表 (格式: 物品名/发光标识/数量|物品名/发光标识/数量|...)

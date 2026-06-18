@@ -93,13 +93,9 @@ BOOL CScriptShell::Execute(CScriptTarget* pTarget, const char* pszPage1, BOOL bU
 	CSe_Page* pPage = nullptr;
 	//	如果当前脚本不是本地SHELL的脚本
 	if (pTarget->getCurScriptObject() && pTarget->getCurScriptObject() != this->m_pScriptObject)
-	{
-		//	从远程脚本取得请求的页面
-		pPage = pTarget->getCurScriptObject()->GetPage(pszPage);
-	}
+		pPage = pTarget->getCurScriptObject()->GetPage(pszPage); //	从远程脚本取得请求的页面
 	else
-		//	从本地脚本取得请求的页面
-		pPage = m_pScriptObject->GetPage(pszPage);
+		pPage = m_pScriptObject->GetPage(pszPage); //	从本地脚本取得请求的页面
 	if (pPage == nullptr) return FALSE;
 	//	如果页面没有访问权限, 则无法访问页面
 	if (bUserQuery && pPage->getAccessRight() != PAR_PUBLIC) return FALSE;

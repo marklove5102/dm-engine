@@ -38,6 +38,11 @@ DEFINE_SCRIPT_VAR(SECOND) {
 	result.SetValue((UINT)st.wSecond);
 }END_SCRIPT_VAR
 
+DEFINE_SCRIPT_VAR(DATETIMETOWOLTIME) {
+	DWORD dwNow = (DWORD)time(nullptr);
+	result.SetValue(dwNow);
+}END_SCRIPT_VAR
+
 DEFINE_SCRIPT_VAR(SERVERDATETIME) {
 	SYSTEMTIME	st;
 	GetLocalTime(&st);

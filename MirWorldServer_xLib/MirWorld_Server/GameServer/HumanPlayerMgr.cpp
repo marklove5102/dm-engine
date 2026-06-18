@@ -5,6 +5,9 @@
 CHumanPlayerMgr::CHumanPlayerMgr(void)
 {
 	m_HumanPlayers.Create(1024);
+	VMP_PROTECT_BEGIN("CHumanPlayerMgr-boTest");
+	m_boTest = FALSE;
+	VMP_PROTECT_END();
 }
 
 CHumanPlayerMgr::~CHumanPlayerMgr(void)
@@ -30,6 +33,13 @@ BOOL CHumanPlayerMgr::AddPlayerNameList(CHumanPlayer* pPlayer, const char* pszNa
 
 CHumanPlayer* CHumanPlayerMgr::NewPlayer()
 {
+	VMP_PROTECT_BEGIN("NewPlayer-boTest");
+	if (IsTestMode())
+	{
+		if (m_HumanPlayers.GetCount() >= 5)
+			return nullptr;
+	}
+	VMP_PROTECT_END();
 	CHumanPlayer* pPlayer = nullptr;
 	UINT id = 0;
 	id = m_HumanPlayers.New(&pPlayer);

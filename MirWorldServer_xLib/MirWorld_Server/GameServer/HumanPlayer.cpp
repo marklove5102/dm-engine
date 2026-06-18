@@ -114,6 +114,7 @@ VOID CHumanPlayer::Clean()
 	memset(m_sStudents, 0, sizeof(m_sStudents));
 	memset(m_sFriends, 0, sizeof(m_sFriends));
 	memset(&m_FenghaoInfo, 0, sizeof(m_FenghaoInfo));
+	InitAchievement(CTimeAchieve::GetInstance()->GetAchieveCount());
 
 	m_bRefuseAddFriend = FALSE;
 	m_pTimeOutDeActiveMagic = nullptr;
@@ -261,6 +262,7 @@ BOOL CHumanPlayer::Init(CREATEHUMANDESC& desc)
 	SendMsg(0, 0x949, 1, 100, 0);
 	SendMsg(0, 0x510, 0, 0, 0);
 	SendMsg(0, 0x328, 1, 0, 0); // 服务器通知客户端是否使用动态加密算法, 以及动态加密数据的长度设置
+	SendMsg(GetId(), 0x9a9, 0, 0, 0);//关闭万兽谱、羽翼
 	SendMsg(GetId(), 0x9594, 0, iBagCount, 0);//38292 发送背包大小
 	SendMsg(GetId(), 0x9593, 1, 0, desc.dbinfo.wPersonCode, (LPVOID)desc.dbinfo.szPersonSign);//38291 设置个性化签名
 	SendMsg(GetId(), 0x9593, 2, 0, 0, (LPVOID)desc.dbinfo.szTempRank);//38291 设置临时称号
@@ -324,36 +326,6 @@ VOID CHumanPlayer::SendClientfunction()
 	HiParam3 += 1 << 6; // 开启自定义快捷键功能
 	SendMsg(static_cast<DWORD>(MAKELONG(LoParam1, HiParam1)), 0x330, MAKEWORD(LoParam2, HiParam2), MAKEWORD(LoParam3, HiParam3),
 		0, (LPVOID)packet.getbuf(), packet.getsize());
-}
-
-VOID CHumanPlayer::SendIsGm()
-{
-	char szBuffer[64]{};
-	xPacket packet(szBuffer, 63);
-	const char* s1C = "IsGm";
-	packet.push(s1C);
-	packet.push(1);
-	int nValue = 100;
-	packet.push((LPVOID)&nValue, 1);
-	nValue = 0;
-	packet.push((LPVOID)&nValue, 4);
-	nValue = 1;
-	packet.push((LPVOID)&nValue, 4);
-	nValue = 1;
-	packet.push((LPVOID)&nValue, 4);
-	nValue = 0;
-	packet.push((LPVOID)&nValue, 4);
-	nValue = 0;
-	packet.push((LPVOID)&nValue, 4);
-	nValue = 0;
-	packet.push((LPVOID)&nValue, 4);
-	nValue = 1;
-	packet.push((LPVOID)&nValue, 4);
-	nValue = 1;
-	packet.push((LPVOID)&nValue, 4);
-	nValue = 0;
-	packet.push((LPVOID)&nValue, 4);
-	SendMsg(GetId(), 0xa02, 0, 0, 0, (LPVOID)packet.getbuf(), packet.getsize());
 }
 
 VOID CHumanPlayer::Sendfirstdlg(const char* pszString)
@@ -1268,21 +1240,17 @@ VOID CHumanPlayer::DoProcess(OBJECTPROCESS* pProcess)
 			for (int i = 0; i < pItem->nCount; i++)
 			{
 				if (pItem->btJob != 99 && pItem->btJob != GetPro())
-				{
 					continue;
-				}
 				if (pItem->btSex != 99 && pItem->btSex != GetSex())
-				{
 					continue;
-				}
 				CreateBagItem(pItem->szItem, pItem->boBind);
 			}
 			pItem = pItem->pNext;
 		}
-		//触发脚本
-		CSystemScript::GetInstance()->Execute(this->GetScriptTarget(), CGameWorld::GetInstance()->GetName(ENI_FIRSTSCRIPT));
+		CSystemScript::GetInstance()->Execute(GetScriptTarget(), "FirstEnv.First", FALSE);
+		CSystemScript::GetInstance()->Execute(GetScriptTarget(), "LoginEnv.Login", FALSE);
 		//清除首次登录记录
-		this->ClearFirstLogin();
+		ClearFirstLogin();
 	}
 	break;
 	case EP_CLOSEPAGE:
@@ -1294,7 +1262,7 @@ VOID CHumanPlayer::DoProcess(OBJECTPROCESS* pProcess)
 	{
 		if (pProcess->dwParam[0] == 0xffffffff)
 		{
-			if (!CSystemScript::GetInstance()->Execute(this->GetScriptTarget(), pProcess->pszParam, FALSE))
+			if (!CSystemScript::GetInstance()->Execute(GetScriptTarget(), pProcess->pszParam, FALSE))
 				SendCloseScriptPage(0xffffffff);
 			break;
 		}
@@ -1539,7 +1507,7 @@ VOID CHumanPlayer::Update()
 				{
 					m_Humandesc.dbinfo.nGameTime--;
 					if (m_Humandesc.dbinfo.nGameTime == 0)
-						CSystemScript::GetInstance()->Execute(this->GetScriptTarget(), "GameTimeMgr.TimeOver", FALSE);
+						CSystemScript::GetInstance()->Execute(GetScriptTarget(), "GameTimeMgr.TimeOver", FALSE);
 				}
 			}
 			
@@ -1752,7 +1720,7 @@ VOID CHumanPlayer::OnLevelUp(int level)
 		CBossTJ::GetInstance()->SendBossList(this);
 	if (level > 45) // 46级开始才有封号判断
 		CheckAndUpgradeTitle();
-	CSystemScript::GetInstance()->Execute(this->GetScriptTarget(), CGameWorld::GetInstance()->GetName(ENI_LEVELUPSCRIPT), FALSE);
+	CSystemScript::GetInstance()->Execute(GetScriptTarget(), "LevelUpEnv.LevelUp", FALSE);
 }
 
 VOID CHumanPlayer::SendWeightChanged()
@@ -1852,6 +1820,32 @@ VOID CHumanPlayer::SendClientKeyConfig()
 	ClientKeyState* clientKeyConfig = CGameWorld::GetInstance()->GetClientKeyConfig();
 	packet.push(clientKeyConfig, sizeof(ClientKeyState) * 100);
 	SendMsg(GetId(), 0x97a, 0, 0, 0, (LPVOID)packet.getbuf(), packet.getsize());
+}
+
+VOID CHumanPlayer::SendClientPluginInfo()
+{
+	char szTempBuffer[512]{};
+	xPacket packet(szTempBuffer, 512);
+	//位运算，开启客户端插件功能：
+	//开特权大包裹
+	//内挂持续使用
+	//挂机绑金上限
+	//时长充值按钮
+	//玄武炉无限制
+	//开启物品来源
+	//开启无限刀
+	//整理包裹触发
+	int nValue = 255;
+	packet.push(&nValue, 4);
+	//插入包裹名称
+	const char* sBagName = "VIP包裹";
+	packet.push((LPVOID)sBagName, 15);
+	packet.push(1);
+	//插入充值网址
+	const char* sPayWeb = "https://www.jiangjiali.com";
+	packet.push((LPVOID)sPayWeb, 254);
+	packet.push(1);
+	SendMsg(GetId(), 0xa02, 0, 10086, 0, (LPVOID)packet.getbuf(), packet.getsize());
 }
 
 VOID CHumanPlayer::UpdateToDB()
@@ -3597,7 +3591,7 @@ typedef struct tagDropEquipment
 VOID CHumanPlayer::OnDeath(DWORD dwKiller)
 {
 	CleanPets();
-	CSystemScript::GetInstance()->Execute(this->GetScriptTarget(), "PlayerEnv.OnDeath", FALSE); // 执行死亡触发脚本
+	CSystemScript::GetInstance()->Execute(GetScriptTarget(), "PlayerEnv.OnDeath", FALSE); // 执行死亡触发脚本
 	CAliveObject* pObj = CGameWorld::GetInstance()->GetAliveObjectById(dwKiller);
 	BOOL bPersonKill = TRUE;
 	if (m_pMap && m_pMap->IsFlagSeted(MF_FIGHTMAP))

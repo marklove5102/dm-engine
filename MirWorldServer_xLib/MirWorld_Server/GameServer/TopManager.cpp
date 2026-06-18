@@ -151,7 +151,7 @@ VOID CTopManager::SendRank(CHumanPlayer* pPlayer, int nType, int StartPos)
 			else
 				o_strncpy(LevelRank.szGuildName, "暂无", 29);
 			LevelRank.btPerCent = pPlayer->GetPropValue(PI_HPPERCENT);
-			pPlayer->SendMsg(m_iTop100Count, 0x9704, nType, 0, 65535, &LevelRank, sizeof(LevelRank));
+			pPlayer->SendMsg(LevelRank.wIndex, 0x9704, nType, MAKEWORD(0, 1), 65535, &LevelRank, sizeof(LevelRank));
 		}
 		if (nType >= 0x200 && nType < 0x300) // 天下名师榜
 		{
@@ -166,7 +166,7 @@ VOID CTopManager::SendRank(CHumanPlayer* pPlayer, int nType, int StartPos)
 			MasterRank.wRepute = 5;
 			MasterRank.btNowTudiCount = 3;
 			DWORD TotlePos = 10;
-			pPlayer->SendMsg(TotlePos, 0x9704, nType, 0, 65535, &MasterRank, sizeof(MasterRank));
+			pPlayer->SendMsg(TotlePos, 0x9704, nType, MAKEWORD(0, 2), 65535, &MasterRank, sizeof(MasterRank));
 		}
 		if (nType >= 0x300 && nType < 0x400) // 元神排行榜
 		{
@@ -193,19 +193,17 @@ VOID CTopManager::SendRank(CHumanPlayer* pPlayer, int nType, int StartPos)
 			o_strncpy(PetRank.szFengHao, "天第一豹", 13);
 			o_strncpy(PetRank.szMaster, "是我", 13);
 			DWORD TotlePos = 10;
-			pPlayer->SendMsg(TotlePos, 0x9704, nType, 0, 65535, &PetRank, sizeof(PetRank));
+			pPlayer->SendMsg(TotlePos, 0x9704, nType, MAKEWORD(0, 4), 65535, &PetRank, sizeof(PetRank));
 		}
 
 		if (nType >= 0x600 && nType < 0x700) // 行会榜
 		{ 
 			CGuildEx* guild = pPlayer->GetGuild();
-			if (guild)
-			{
-				GuildRank GuildRank;
-				CGuildManagerEx::GetInstance()->GetPlayerTopGuild(guild, GuildRank);
-				DWORD TotlePos = 10;
-				pPlayer->SendMsg(TotlePos, 0x9704, nType, 0, 65535, &GuildRank, sizeof(GuildRank));
-			}
+			if (!guild) return;
+			GuildRank GuildRank;
+			CGuildManagerEx::GetInstance()->GetPlayerTopGuild(guild, GuildRank);
+			DWORD TotlePos = 10;
+			pPlayer->SendMsg(GuildRank.wIndex, 0x9704, nType, MAKEWORD(0, 6), 65535, &GuildRank, sizeof(GuildRank));
 		}
 		return;
 	}
@@ -217,7 +215,7 @@ VOID CTopManager::SendRank(CHumanPlayer* pPlayer, int nType, int StartPos)
 		{
 			TopCharInfo* charInfo = GetTop100CharInfo(i, nType);
 			if (charInfo == nullptr) continue;
-			LevelRankArray[SendCount].wIndex = GetTopIndex(pPlayer->GetName());
+			LevelRankArray[SendCount].wIndex = GetTopIndex(charInfo->szName);
 			o_strncpy(LevelRankArray[SendCount].szName, charInfo->szName, 13);
 			LevelRankArray[SendCount].btLevel = charInfo->wLevel;
 			LevelRankArray[SendCount].btJob = charInfo->btClass;
@@ -230,7 +228,7 @@ VOID CTopManager::SendRank(CHumanPlayer* pPlayer, int nType, int StartPos)
 			SendCount++;
 			if (SendCount == 10) break;
 		}
-		pPlayer->SendMsg(m_iTop100Count, 0x9704, nType, 0, SendCount, &LevelRankArray, sizeof(LevelRank) * SendCount);
+		pPlayer->SendMsg(GetTopIndex(pPlayer->GetName()), 0x9704, nType, MAKEWORD(0, 1), SendCount, &LevelRankArray, sizeof(LevelRank) * SendCount);
 	}
 	if (nType >= 0x200 && nType < 0x300) // 天下名师榜
 	{
@@ -251,7 +249,7 @@ VOID CTopManager::SendRank(CHumanPlayer* pPlayer, int nType, int StartPos)
 			SendCount++;
 			if (SendCount == 10) break;
 		}
-		pPlayer->SendMsg(SendCount, 0x9704, nType, 0, SendCount, &MasterRankArray, sizeof(MasterRank) * 10);
+		pPlayer->SendMsg(SendCount, 0x9704, nType, MAKEWORD(0, 2), SendCount, &MasterRankArray, sizeof(MasterRank) * 10);
 	}
 	if (nType >= 0x300 && nType < 0x400) // 元神排行榜
 	{
@@ -290,14 +288,22 @@ VOID CTopManager::SendRank(CHumanPlayer* pPlayer, int nType, int StartPos)
 			SendCount++;
 			if (SendCount == 10) break;
 		}
-		pPlayer->SendMsg(SendCount, 0x9704, nType, 0, SendCount, &PetRankArray, sizeof(PetRank) * SendCount);
+		pPlayer->SendMsg(SendCount, 0x9704, nType, MAKEWORD(0, 4), SendCount, &PetRankArray, sizeof(PetRank) * SendCount);
 	}
 	if (nType >= 0x600 && nType < 0x700) // 行会榜
 	{
+		CGuildEx* guild = pPlayer->GetGuild();
+		GuildRank pGuildRank; //获取玩家的行会排名
+		WORD wIndex = 0;
+		if (guild)
+		{
+			CGuildManagerEx::GetInstance()->GetPlayerTopGuild(guild, pGuildRank);
+			wIndex = pGuildRank.wIndex;
+		}
 		DWORD TotlePos = 10;
 		GuildRank GuildRankArray[10];
 		int SendCount = CGuildManagerEx::GetInstance()->GetTopGuilds(GuildRankArray, TotlePos);
-		pPlayer->SendMsg(SendCount, 0x9704, nType, 0, SendCount, &GuildRankArray, sizeof(GuildRank) * SendCount);
+		pPlayer->SendMsg(wIndex, 0x9704, nType, MAKEWORD(0,6), SendCount, &GuildRankArray, sizeof(GuildRank)* SendCount);
 	}
 }
 

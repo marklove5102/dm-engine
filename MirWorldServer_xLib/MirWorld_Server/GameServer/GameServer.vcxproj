@@ -70,7 +70,7 @@
     <LinkIncremental>true</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <OutDir>.\Release</OutDir>
+    <OutDir>..\..\..\work\Bin\</OutDir>
     <IntDir>$(SolutionDir)..\..\out\GameServer-$(Platform)\$(ProjectName)\$(Configuration)\</IntDir>
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
@@ -80,7 +80,7 @@
     <LinkIncremental>true</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <OutDir>.\x64\Release\</OutDir>
+    <OutDir>..\..\..\work\Bin\</OutDir>
     <IntDir>$(SolutionDir)..\..\out\GameServer-$(Platform)\$(ProjectName)\$(Configuration)\</IntDir>
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
@@ -97,7 +97,7 @@
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <FloatingPointModel>Fast</FloatingPointModel>
       <OpenMPSupport>true</OpenMPSupport>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\Vendor\RapidJson\include;$(ProjectDir)..\..\mimalloc\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\Vendor\RapidJson\include;$(ProjectDir)..\..\mimalloc\include;$(ProjectDir)..\..\Vendor\VMProtect\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/execution-charset:gbk %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -107,6 +107,7 @@
       <SubSystem>Console</SubSystem>
       <TargetMachine Condition="'$(Platform)'=='Win32'">MachineX86</TargetMachine>
       <TargetMachine Condition="'$(Platform)'=='x64'">MachineX64</TargetMachine>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\..\Vendor\VMProtect\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -117,13 +118,13 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\Vendor\RapidJson\include;$(ProjectDir)..\..\mimalloc\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\Vendor\RapidJson\include;$(ProjectDir)..\..\mimalloc\include;$(ProjectDir)..\..\Vendor\VMProtect\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <FloatingPointModel>Fast</FloatingPointModel>
       <OpenMPSupport>true</OpenMPSupport>
       <AdditionalOptions>/execution-charset:gbk %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
-      <OutputFile>../../../publish/$(ProjectName).exe</OutputFile>
+      <OutputFile>$(TargetDir)$(ProjectName).exe</OutputFile>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <GenerateMapFile>false</GenerateMapFile>
       <MapExports>false</MapExports>
@@ -132,6 +133,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <TargetMachine Condition="'$(Platform)'=='Win32'">MachineX86</TargetMachine>
       <TargetMachine Condition="'$(Platform)'=='x64'">MachineX64</TargetMachine>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\..\Vendor\VMProtect\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -146,7 +148,7 @@
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <FloatingPointModel>Fast</FloatingPointModel>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\Vendor\RapidJson\include;$(ProjectDir)..\..\mimalloc\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\Vendor\RapidJson\include;$(ProjectDir)..\..\mimalloc\include;$(ProjectDir)..\..\Vendor\VMProtect\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/execution-charset:gbk %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -155,6 +157,7 @@
       <ProgramDatabaseFile>$(OutDir)GameServer.pdb</ProgramDatabaseFile>
       <SubSystem>Console</SubSystem>
       <TargetMachine>MachineX64</TargetMachine>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\..\Vendor\VMProtect\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -165,12 +168,12 @@
       <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\Vendor\RapidJson\include;$(ProjectDir)..\..\mimalloc\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\Vendor\RapidJson\include;$(ProjectDir)..\..\mimalloc\include;$(ProjectDir)..\..\Vendor\VMProtect\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <FloatingPointModel>Fast</FloatingPointModel>
       <AdditionalOptions>/execution-charset:gbk %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
-      <OutputFile>../../../publish/$(ProjectName).exe</OutputFile>
+      <OutputFile>$(TargetDir)$(ProjectName).exe</OutputFile>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <GenerateMapFile>false</GenerateMapFile>
       <MapExports>false</MapExports>
@@ -178,6 +181,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <TargetMachine>MachineX64</TargetMachine>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\..\Vendor\VMProtect\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -193,6 +197,8 @@
     <ClCompile Include="BlueFireEvent.cpp" />
     <ClCompile Include="BossTJ.cpp" />
     <ClCompile Include="BundleManager.cpp" />
+    <ClCompile Include="Human_Achieve.cpp" />
+    <ClCompile Include="TimeAchieve.cpp" />
     <ClCompile Include="ChangeMapEvent.cpp" />
     <ClCompile Include="CmdProc.cpp" />
     <ClCompile Include="DamageEvent.cpp" />
@@ -235,6 +241,7 @@
     <ClCompile Include="ItemManager.cpp" />
     <ClCompile Include="MonsterAttack.cpp" />
     <ClCompile Include="TriggerEvent.cpp" />
+    <ClCompile Include="Variable_Achieve.cpp" />
     <ClCompile Include="Variable_Item.cpp" />
     <ClCompile Include="LogicMap.cpp" />
     <ClCompile Include="LogicMapMgr.cpp" />
@@ -322,6 +329,7 @@
     <ClInclude Include="BlueFireEvent.h" />
     <ClInclude Include="BossTJ.h" />
     <ClInclude Include="BundleManager.h" />
+    <ClInclude Include="TimeAchieve.h" />
     <ClInclude Include="ChangeMapEvent.h" />
     <ClInclude Include="CmdProc.h" />
     <ClInclude Include="DamageEvent.h" />
@@ -415,6 +423,7 @@
     <ClInclude Include="TriggerEvent.h" />
     <ClInclude Include="VisibleEvent.h" />
     <ClInclude Include="vMap.h" />
+    <ClInclude Include="VMProtectHelper.h" />
     <ClInclude Include="WeatherSystem.h" />
     <ClInclude Include="xSimpleSocket.h" />
     <ClInclude Include="ZombiHoleEvent.h" />

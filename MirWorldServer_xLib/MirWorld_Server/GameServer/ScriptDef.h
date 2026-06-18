@@ -94,6 +94,26 @@ typedef struct tagGetVariableStruct
 	{
 		FILLSELF(0);
 	}
+	void SetValue(int nVal)
+	{
+		nType = 0;
+		nValue = (UINT)nVal;
+	}
+	void SetValue(DWORD nVal)
+	{
+		nType = 0;
+		nValue = (UINT)nVal;
+	}
+	void SetValue(WORD nVal)
+	{
+		nType = 0;
+		nValue = (UINT)nVal;
+	}
+	void SetValue(BYTE nVal)
+	{
+		nType = 0;
+		nValue = (UINT)nVal;
+	}
 	void SetValue(UINT nVal)
 	{
 		nType = 0;

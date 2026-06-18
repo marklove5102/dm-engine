@@ -432,6 +432,9 @@
     <ClCompile Include="BossTJ.cpp">
       <Filter>功能处理\操作\活动</Filter>
     </ClCompile>
+    <ClCompile Include="TimeAchieve.cpp">
+      <Filter>功能处理\操作\活动</Filter>
+    </ClCompile>
     <ClCompile Include="MonsterAttack.cpp">
       <Filter>功能处理\怪物</Filter>
     </ClCompile>
@@ -446,6 +449,12 @@
     </ClCompile>
     <ClCompile Include="Human_FengHao.cpp">
       <Filter>功能处理\玩家</Filter>
+    </ClCompile>
+    <ClCompile Include="Human_Achieve.cpp">
+      <Filter>功能处理\玩家</Filter>
+    </ClCompile>
+    <ClCompile Include="Variable_Achieve.cpp">
+      <Filter>架构相关\脚本变量</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -743,6 +752,9 @@
     <ClInclude Include="BossTJ.h">
       <Filter>功能处理\操作\活动</Filter>
     </ClInclude>
+    <ClInclude Include="TimeAchieve.h">
+      <Filter>功能处理\操作\活动</Filter>
+    </ClInclude>
     <ClInclude Include="MonsterAttack.h">
       <Filter>功能处理\怪物</Filter>
     </ClInclude>
@@ -757,6 +769,9 @@
     </ClInclude>
     <ClInclude Include="FengHaoGrowManager.h">
       <Filter>功能处理\玩家\时长封号</Filter>
+    </ClInclude>
+    <ClInclude Include="VMProtectHelper.h">
+      <Filter>架构基础</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

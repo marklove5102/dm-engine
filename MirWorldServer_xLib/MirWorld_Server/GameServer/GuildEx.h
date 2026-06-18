@@ -130,6 +130,7 @@ public:
 	CGuildEx(void);
 	virtual ~CGuildEx(void);
 
+	CGuildMemberEx* GetMember(const char* pszName);
 	CGuildMemberEx* GetMember(CHumanPlayer* pMember);
 	BOOL AddMember(const char* pszName);
 	BOOL AddMember(CHumanPlayer* pMember);
@@ -179,7 +180,7 @@ public:
 
 	BOOL SendFirstPage(CHumanPlayer* pPlayer);//xPacket & packet );
 	//时光区-成员列表
-	BOOL SendDurationMemberList(CHumanPlayer* pPlayer);//xPacket & packet );
+	BOOL SendDurationMemberList(CHumanPlayer* pPlayer = nullptr);
 	BOOL SendExp(CHumanPlayer* pPlayer);
 	BOOL AddGroupToList(CGuildGroupEx* pGroup);
 	//是否行会人数已满
@@ -193,6 +194,7 @@ public:
 	UINT GetExp()const { return m_nExp; }
 	VOID AddExp(UINT nExp) 
 	{
+		if (m_nLevel >= 10) return;
 		CGuildManagerEx* GuildManager = CGuildManagerEx::GetInstance();
 		m_nExp += nExp;
 		if (m_nExp >= GuildManager->GetUpExp(m_nLevel)) // 行会升级判断
@@ -202,7 +204,6 @@ public:
 		}
 	}
 	UINT GetLevel()const { return m_nLevel; }
-	VOID SetLevel(UINT nLevel) { m_nLevel = nLevel; }
 
 	UINT GetGold()const { return m_nGold; }
 
@@ -270,13 +271,15 @@ public: // 行会组管理
 	//创建行会组
 	CGuildGroupEx* NewGroup(const char* pszName, UINT nLevel = 0) const;
 	//发送行会组封号数据
-	VOID SendGroupFengHaoData();
+	VOID SendGroupFengHaoData(CHumanPlayer* pPlayer = nullptr);
 	//通灵塔信息
 	VOID SendGuildTowerInfo(CHumanPlayer* pPlayer);
 	//删除行会组
 	VOID DeleteGroup(CGuildGroupEx* pGroup);
 	//从列表中删除行会组
 	VOID DeleteGroupFromList(CGuildGroupEx* pGroup);
+	//切换分组
+	BOOL ChangeGroup(const char* pszName, UINT nLevel, UINT nOldLevel);
 	//通过等级获取行会组
 	CGuildGroupEx* GetGroupByLevel(UINT nLevel)
 	{

@@ -122,7 +122,7 @@
       <AdditionalOptions>/execution-charset:gbk %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
-      <OutputFile>../../../publish/$(ProjectName).exe</OutputFile>
+      <OutputFile>$(TargetDir)$(ProjectName).exe</OutputFile>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <GenerateMapFile>false</GenerateMapFile>
       <MapExports>false</MapExports>
@@ -168,7 +168,7 @@
       <AdditionalOptions>/execution-charset:gbk %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
-      <OutputFile>../../../publish/$(ProjectName).exe</OutputFile>
+      <OutputFile>$(TargetDir)$(ProjectName).exe</OutputFile>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <GenerateMapFile>false</GenerateMapFile>
       <MapExports>false</MapExports>

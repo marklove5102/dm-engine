@@ -22,6 +22,7 @@ static const char* GetSelectCharServerAdditionalInfo()
 
 int main(int argc, char* argv[])
 {
+	setlocale(LC_ALL, ".936");
 	// 初始化崩溃处理器
 	CRASH_HANDLER_INIT();
 	CRASH_HANDLER_SETPATH("..\\日志\\");

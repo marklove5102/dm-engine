@@ -265,7 +265,7 @@ private:
 	int m_iMonsterQueue;
 	int m_iNpcQueue;
 	int m_iPlayerQueue;
-	BOOL m_boBossTJ; // 是否开启BOSS图鉴
+
 	ClientKeyState m_ClientKeyConfig[100]; // 自定义快捷键
 
 	// 工作线程池相关

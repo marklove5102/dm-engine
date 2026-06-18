@@ -242,7 +242,7 @@ BOOL CServerForm::Create(const char* pszTitle, const char* pszCmdLine)
 
 	// 切换到父目录作为工作目录
 	SetCurrentDirectoryA("..\\");
-
+	
 	return TRUE;
 	TRY_END
 }

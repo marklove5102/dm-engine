@@ -1,5 +1,6 @@
 #pragma once
 #include "humanplayer.h"
+#include "VMProtectHelper.h"
 
 class CHumanPlayerMgr : public xSingletonClass<CHumanPlayerMgr>
 {
@@ -20,7 +21,16 @@ public:
 	int getCount() { return m_HumanPlayers.GetCount(); }
 	//获取在线玩家列表
 	CIndexListEx<CHumanPlayer>* GetPlayerList() { return &m_HumanPlayers; }
+	//设置为测试模式
+	VOID SetTestMode() { m_boTest = Encrypt(TRUE); }
+	//是否是测试模式
+	BOOL IsTestMode() const { return Decrypt(m_boTest); }
 private:
 	CIndexListEx<CHumanPlayer> m_HumanPlayers;
 	CNameHash m_PlayerNameHash; // 所有玩家名字集合
+	BOOL m_boTest; // 是否是测试模式
+	//以下是 XOR 加密
+	static constexpr UINT KEY = 0xDEADBEEF;
+	static UINT Encrypt(BOOL val) { return (val ? 1 : 0) ^ KEY; }
+	static BOOL Decrypt(UINT val) { return (val ^ KEY) != 0; }
 };

@@ -149,6 +149,7 @@ VOID CGuildManagerEx::GetPlayerTopGuild(CGuildEx* pGuild, GuildRank& pGuildRank)
 			pGuildRank.wNumYs = 0;
 			pGuildRank.wNum = pTempArray[i].pGuild->GetMemberCount();
 			pGuildRank.dwExp = pTempArray[i].pGuild->GetExp();
+			pGuildRank.wLevel = pTempArray[i].pGuild->GetLevel();
 			break;
 		}
 	}
@@ -173,6 +174,7 @@ int CGuildManagerEx::GetTopGuilds(GuildRank* pGuilds, int maxCount)
 		pGuilds[i].wNumYs = 0;
 		pGuilds[i].wNum = pTempArray[i].pGuild->GetMemberCount();
 		pGuilds[i].dwExp = pTempArray[i].pGuild->GetExp();
+		pGuilds[i].wLevel = pTempArray[i].pGuild->GetLevel();
 	}
 	delete[] pTempArray;
 	return nResult;

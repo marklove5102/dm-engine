@@ -543,10 +543,10 @@ CAliveObject* CAiObjectEx::SearchFriendDistance(BYTE nDistance)
 	int nDir = GetDirection();
 	// 预计算方向偏移量
 	int myX = getX(), myY = getY();
-	BYTE dirX = G_DIROFS[nDir % 8].x;
-	BYTE dirY = G_DIROFS[nDir % 8].y;
-	BYTE sideDirX = G_DIROFS[(nDir + 2) % 8].x;
-	BYTE sideDirY = G_DIROFS[(nDir + 2) % 8].y;
+	int dirX = G_DIROFS[nDir % 8].x;
+	int dirY = G_DIROFS[nDir % 8].y;
+	int sideDirX = G_DIROFS[(nDir + 2) % 8].x;
+	int sideDirY = G_DIROFS[(nDir + 2) % 8].y;
 	// 搜索朝向的以攻击距离为半径的半圆内的对象
 	for (int depth = 1; depth <= nDistance; depth++)
 	{

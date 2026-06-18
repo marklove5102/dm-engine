@@ -18,6 +18,7 @@
 #include "BundleManager.h"
 #include "eventmanager.h"
 #include "BossTJ.h"
+#include "TimeAchieve.h"
 #include "GameStage.h"
 #include "guildex.h"
 #include "guildmanagerex.h"
@@ -57,7 +58,6 @@ CGameWorld::CGameWorld(void) :
 	m_bWorkerRunning(false),
 	m_bAsyncUpdateReady(false),
 	m_xGlobeProcessQueue(64),
-	m_boBossTJ(0),
 	m_fExpFactor(1.0f),
 	m_iPlayerQueue(256),
 	m_iMonsterQueue(32),
@@ -196,14 +196,9 @@ BOOL CGameWorld::LoadServerConfig()
 	m_pNameList[ENI_TAOSHI] = (char*)m_sfServer.GetString("Name", "Taoshi", "道士");
 	m_pNameList[ENI_TOPOFWORLD] = (char*)m_sfServer.GetString("Name", "TopOfWorld", "天下第一");
 	m_pNameList[ENI_UPGRADEMINESTONE] = (char*)m_sfServer.GetString("Name", "UpgradeMineStone", "黑铁矿石");
-	m_pNameList[ENI_FIRSTSCRIPT] = (char*)m_sfServer.GetString("Name", "FirstScript", "system.first");
-	m_pNameList[ENI_LOGINSCRIPT] = (char*)m_sfServer.GetString("Name", "LoginScript", "system.login");
-	m_pNameList[ENI_LEVELUPSCRIPT] = (char*)m_sfServer.GetString("Name", "LevelUpScript", "system.levelup");
-	m_pNameList[ENI_LOGOUTSCRIPT] = (char*)m_sfServer.GetString("Name", "LogoutScript", "system.logout");
 	LOADNAME(PHYSICSMAPPATH, ".\\Data\\Maps\\Physics");
 	LOADNAME(PHYSICSCACHEPATH, ".\\Data\\Maps\\Cache");
 
-	m_boBossTJ = m_sfServer.GetInteger("Setting", "BossTJ", 1);//是否开启BOSS图鉴
 	m_fExpFactor = m_sfServer.GetInteger("Setting", "ExpFactor", 100) / 100.0f;//爆率
 	m_iPlayerQueue = m_sfServer.GetInteger("Setting", "PlayerQueue", 256);//玩家处理队列数量
 	m_iMonsterQueue = m_sfServer.GetInteger("Setting", "MonsterQueue", 32);//怪物处理队列数量
@@ -609,6 +604,7 @@ BOOL CGameWorld::Init()
 	CMapScriptManager::GetInstance()->Load(".\\Data\\MapScript.txt");
 	CTaskManager::GetInstance()->Load(".\\Data\\Task");
 	CBossTJ::GetInstance()->Load(".\\Data\\Config\\BossTJ.xml");
+	CTimeAchieve::GetInstance()->Load(".\\Data\\Config\\TimeAchieve.xml");
 	CGameStage::GetInstance()->Load(".\\Data\\Config\\GameStage.xml");
 
 	InitThreadPool(); // 初始化工作线程池
@@ -762,11 +758,9 @@ VOID CGameWorld::Update()
 	case 1:
 	{
 		CDownItemMgr::GetInstance()->UpdateDownItem();//更新掉落物品
-		SubmitAsyncTask([&]() {
-			if (m_boBossTJ)
+		SubmitAsyncTask([]() {
 				CBossTJ::GetInstance()->Update(); // Boss图鉴刷新时间更新
 			});
-
 	}
 	break;
 	case 2:

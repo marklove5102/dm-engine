@@ -26,6 +26,7 @@ static void PrintHelp()
 
 int main()
 {
+    setlocale(LC_ALL, ".936");
     // 重定向标准输入输出
     FILE* fp;
     freopen_s(&fp, "CONIN$", "r", stdin);

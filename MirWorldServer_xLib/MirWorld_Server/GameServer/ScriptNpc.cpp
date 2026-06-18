@@ -60,7 +60,7 @@ VOID CScriptNpc::Clean()
 BOOL CScriptNpc::Init(UINT dbid, const char* pszName, int view, int x, int y, DWORD mapid, CScriptObject* pScriptObject/* CScriptPage * pPage*/)
 {
 	m_pSellGoodsList = nullptr;
-	this->m_pScriptObject = pScriptObject;
+	m_pScriptObject = pScriptObject;
 	setXY(x, y);
 	SetMapId(mapid);
 	SetDirection((e_direction)(5 + Getrand(3)));
@@ -74,7 +74,7 @@ BOOL CScriptNpc::Init(UINT dbid, const char* pszName, int view, int x, int y, DW
 	else
 		m_fSandCityMerchant = FALSE;
 	o_strncpy(m_szName, pszName, 31);
-	o_strncpy(this->m_szLongName, m_szName, 31);
+	o_strncpy(m_szLongName, m_szName, 31);
 	m_fChanged = FALSE;
 	Goods* pGoodList = nullptr;
 	if (m_pScriptObject && m_pScriptObject->getGoodsList() && m_pScriptObject->getGoodsList()->getList())
@@ -89,6 +89,7 @@ BOOL CScriptNpc::Init(UINT dbid, const char* pszName, int view, int x, int y, DW
 	}
 	m_tmrUpdateItem.Savetime();
 	m_dwTimeOut = 0;
+	m_bIsNpc = TRUE;
 	return TRUE;
 }
 
@@ -915,6 +916,8 @@ VOID CScriptNpc::SendMerChantJsonMsg(CScriptTarget* pTarget, const char* pWords,
 	case 3:
 		SendCreateGuildHelp(pPlayer, pWords); //创建行会帮助
 	break;
+	case 100:
+		SendCustomUIWnd(pPlayer, pWords); //发送自定义UI消息
 	}
 }
 
@@ -1041,5 +1044,42 @@ VOID CScriptNpc::SendCreateGuildHelp(CHumanPlayer* pPlayer, const char* pWords)
 	packet.push((LPVOID)&nValue, 4);
 	packet.push(pWords);
 	packet.push(21);
+	pPlayer->SendMsg(pPlayer->GetId(), 0xa02, 0, 0, 0, (LPVOID)packet.getbuf(), packet.getsize());
+}
+
+VOID CScriptNpc::SendCustomUIWnd(CHumanPlayer* pPlayer, const char* pWords)
+{
+	Document doc;
+	doc.Parse(pWords);
+	if (doc.HasParseError()) return;
+
+	xPacket packet(g_szTempBuffer, 65535);
+	const char* pszWndName = doc["WndName"].GetString();
+	packet.push(pszWndName);
+	packet.push(1);
+	int pMsgType = doc["MsgType"].GetInt();
+	packet.push((LPVOID)&pMsgType, 1);
+
+	int nListStrCount = doc["StrList"].Size();
+	packet.push((LPVOID)&nListStrCount, 4);
+	char szFinal[512];
+	for (int i = 0; i < nListStrCount; i++)
+	{
+		const rapidjson::Value& task = doc["StrList"][i];
+		const char* pszStr = task.GetString();
+		ProcFmtText(pszStr, szFinal, 512, pPlayer->GetScriptTarget());
+		packet.push(szFinal);
+		packet.push(1);
+	}
+
+	int nListIntCount = doc["NumList"].Size();
+	packet.push((LPVOID)&nListIntCount, 4);
+	for (int i = 0; i < nListIntCount; i++)
+	{
+		const rapidjson::Value& task = doc["NumList"][i];
+		int pInt = task.GetInt();
+		packet.push(&pInt, 4);
+	}
+	packet.push(12);
 	pPlayer->SendMsg(pPlayer->GetId(), 0xa02, 0, 0, 0, (LPVOID)packet.getbuf(), packet.getsize());
 }

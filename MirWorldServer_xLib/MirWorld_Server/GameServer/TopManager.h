@@ -17,6 +17,7 @@ typedef struct tagLevelRank
 	BYTE btPerCent;      // 当前经验百分数
 	BYTE btYsJob;        // 元神职业(0,1,2)
 	BYTE btYsLevel;      // 元神等级
+	BYTE unkown[16];	 // 未知
 } LevelRank; // 等级榜
 
 typedef struct tagPetRank

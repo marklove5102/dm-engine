@@ -148,7 +148,6 @@ VOID CMarketManager::OpenMarket(CHumanPlayer* pPlayer)
 		}
 	}
 	pPlayer->SendMsg(id, 0x1000, 1, 0, 0, (LPVOID)packet.getbuf(), packet.getsize());
-	packet.clear();
 	if (this->m_nMarketCount > 0 && this->m_pMarketArray[0])
 		QueryMarket(pPlayer, m_pMarketArray[0]->GetId());
 }

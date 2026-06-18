@@ -13,6 +13,7 @@
 #include "monstermanagerex.h"
 #include "monsterex.h"
 #include "ScriptNpc.h"
+#include "TimeAchieve.h"
 
 class CClientObj;
 class CScriptPage;
@@ -338,8 +339,9 @@ public:
 	VOID SendScrollText(const char* pszText);
 	// 发送自定义快捷键
 	VOID SendClientKeyConfig();
-	// 发送IsGm消息
-	VOID SendIsGm();
+	// 发送客户端插件信息
+	VOID SendClientPluginInfo();
+	//使用物品
 	VOID UseItem(DWORD dwItemIndex, DWORD dwPackIndex);
 
 	int	GetEquipments(EQUIPMENT* pEquipments);
@@ -933,6 +935,35 @@ public:
 	}
 	// 检查是否穿戴了指定物品
 	BOOL CheckItemInfo(int pos, BYTE stdMode, BYTE btShape) { return m_Equipments.CheckItemInfo(pos, stdMode, btShape); }
+public: //成就相关函数
+	//初始化成就数据
+	VOID InitAchievement(int nCount);
+	//调整成就组进度值
+	BOOL ChangeAchieveGroupExp(BYTE btGroupId, BYTE btType, DWORD btRecentCount);
+	//调整指定成就ID进度值
+	BOOL ChangeAchieveExp(WORD wId, BYTE btType, DWORD btRecentCount);
+	//调整指定成就ID状态
+	BOOL SetAchieveState(WORD wId, BYTE btStatu);
+	//调整指定成就ID完成时间
+	BOOL SetAchieveTime(WORD wId, DWORD dwTime);
+	//发送更新指定成就相关信息
+	BOOL SendGotAchieve(WORD wId);
+	//调整玩家成就点
+	BOOL ChangeAchievePoint(BYTE btType, DWORD dwExp);
+	//组包玩家的成就数据
+	VOID PacketAchieve(xPacket& packet, BYTE btType, int nAchieveCount);
+	//获取玩家当前的成就进度
+	DWORD GetAchieveExp() const { return m_Achievement.dwExp; }
+	//获取玩家当前的成就等级
+	BYTE GetAchieveLevel() const { return m_Achievement.btLevel; }
+	//获取指定成就的进度值
+	DWORD GetAchieveExpById(WORD wId) const;
+	//获取指定成就的状态值
+	BYTE GetAchieveStateById(WORD wId) const;
+	//获取指定成就的完成时间
+	DWORD GetAchieveCompleteTimeById(WORD wId) const;
+	// 检查成就等级是否升级
+	VOID CheckAchieveLevelUp();
 protected:
 	VOID SendClientfunction();
 	DWORD m_dwForgePoint;
@@ -1054,6 +1085,7 @@ protected:
 
 	FenghaoInfo m_FenghaoInfo; // 玩家时长封号信息
 	CServerTimer m_tmrFenghaoTime; // 时长区-封号计时
+	AchievementData m_Achievement;  // 成就数据
 
 	TASKINFO m_TaskInfo;
 	int HushenBuffdamage = 0;//这个用来存储护身或者金刚受到的伤害

@@ -125,14 +125,15 @@ BOOL CScriptVariableManager::GetVariable(const char* pszName, CHumanPlayer* pPla
 	BOOL boOK = FALSE;
 	char szTemp[256];
 	strcpy_s(szTemp, sizeof(szTemp), pszName);
-	char* Params[4];
+	char* Params[5];
 	CallParamEx* callParams = new CallParamEx[4];
-	int nParam = SearchParam(szTemp, Params, 4, '*');
+	int nParam = SearchParam(szTemp, Params, 5, '*');
 	if (nParam > 0)
 	{
 		for (int i = 1; i < nParam; i++)
 		{
-			callParams[i] = Params[i];
+			callParams[i-1].pszParam = Params[i];
+			callParams[i-1].nParam = StringToInteger(Params[i]);
 		}
 		fnGetVariable fnGet = (fnGetVariable)m_xVarList.ObjectOf(Params[0]);
 		if (fnGet)
