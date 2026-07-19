@@ -31,7 +31,7 @@
 
 #define DEFBLOCKSIZE			16
 
-static unsigned char Decode6BitMask[5] = { 0xfc, 0xf8, 0xf0, 0xe0, 0xc0 }; 
+
 
 enum E_SERVER
 {

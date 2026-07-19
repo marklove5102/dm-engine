@@ -174,12 +174,6 @@ void CGameNet::OnSocketMessageRecieve(char* pszMsg)
 		isOnGameProc = false;		//切回登录流程 
 	}
 
-	//for test
-	if(tdm.wIdent == 201)
-	{
-		int mmm = 0;
-	}
-
 	if(!isOnGameProc){
 		 output_debug("LS 协议 %d\n", tdm.wIdent);
 

@@ -26,7 +26,7 @@ CGameControl::CGameControl(void)
 	m_callback[LG_CLI_SS_INFO]=                    &CGameControl::MSG_DlServerIP_Ntf;
 	m_callback[LG_CLI_GroupList_NTF]=              &CGameControl::MSG_GroupList_Ntf;
     //m_callback[LG_CLI_SelGroup_ACK]=               &CGameControl::MSG_SelGroup_Ack;
-	m_callback[SM_SELECTSERVER_OK]=               &CGameControl::MSG_SelGroup_Ack;
+	//m_callback[SM_SELECTSERVER_OK]=               &CGameControl::MSG_SelGroup_Ack;
     //m_callback[GG_CLI_Login_ACK]=                  &CGameControl::MSG_Login_Ack;
 	m_callback[SM_PASSWD_FAIL]=                  &CGameControl::MSG_Login_Error_Ack;		//µÇÂ¼Ê§°Ü,ÕËºÅÃÜÂë´íÎó
 	m_callback[SC_LOGIN_USERPWDOK]=                  &CGameControl::MSG_Login_Succ;		//µÇÂ¼³É¹¦ SM_PASSOK_SELECTSERVER 529

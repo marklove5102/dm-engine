@@ -724,7 +724,7 @@ bool CGameMap::ReadMap(DataStreamInterface* stream,SMapData& info)
 			}
 		}
 	}
-	else if (dwVer == 10)
+	else if (dwVer == 10 || dwVer == 0xB || dwVer == 0xC) // Ôö¼Ó 0xB ºÍ 0xC
 	{
 		for(int iY=0;iY<iHeight && !stream->eof();iY++)
 		{

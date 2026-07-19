@@ -324,7 +324,7 @@ void CGameControl::SEND_SelRole_Req(const char* ptID, const char* roleName)
 	//传世方法选择角色
 	g_OtherData.CopyToSelf();
 	char szPacket[32];
-	wsprintf( szPacket, "%s/%s", g_Login.GetLoginID(), roleName );
+	wsprintf( szPacket, "%s/%s", ptID, roleName );
 	g_pNet->SendBuf(SERVER_GAME, (char*)&szPacket, 0, CM_SELCHR, false);
 }
 
@@ -347,7 +347,7 @@ void CGameControl::MSG_SelRole_Ack(const char * msg, int iLen)
 		g_Login.SetServer(runGate.at(0).c_str(),StringUtil::toInt(runGate.at(1)));
 		g_pNet->Close(SERVER_GAME);
 		Sleep(1000);
-		//连接到角色网关
+		//连接到游戏网关
 		g_pNet->SetServer(SERVER_GAME,runGate.at(0).c_str(),StringUtil::toInt(runGate.at(1)));
 		g_pNet->Connect(SERVER_GAME);
 		Sleep(100);
@@ -356,7 +356,7 @@ void CGameControl::MSG_SelRole_Ack(const char * msg, int iLen)
 		CHAR				szEncodeMsg[512];
 		CHAR				szLoginInfo[512];
 		CHAR				szPacket[512];
-		wsprintf(szLoginInfo, "**%s/%s/%d/%d/1", g_Login.GetLoginID(), g_OtherData.GetCharName(), g_Login.GetSessionID(), 1);
+		wsprintf(szLoginInfo, "***%s/%s/%d/20161104/%d", g_Login.GetLoginID(), g_OtherData.GetCharName(), g_Login.GetSessionID(), 1);
 
 		int nPos = fnEncode6BitBuf((BYTE*)szLoginInfo, szEncodeMsg, lstrlen(szLoginInfo), sizeof(szEncodeMsg));
 

@@ -552,92 +552,106 @@ void CNet::OnWrite(DWORD wParam,DWORD lParam)
 //传世
 int WINAPI fnEncode6BitBuf(unsigned char *pszSrc, char *pszDest, int nSrcLen, int nDestLen)
 {
-	int				nDestPos	= 0;
-	int				nRestCount	= 0;
-	unsigned char	chMade = 0, chRest = 0;
+	BYTE	b1 = 0, bcal = 0;
+	BYTE	bflag1 = 0, bflag2 = 0;
+	int		i = 0;
+	int		iptr = 0;
+	int		optr = 0;
+	int		needed = 0;
 
 	//长度修正
 	if(nSrcLen==0){
 		nSrcLen = strlen((char*)pszSrc);
 	}
 
-	for (int i = 0; i < nSrcLen; i++)
+	while (iptr < nSrcLen)
 	{
-		if (nDestPos >= nDestLen) break;
+		needed = (i < 2) ? 1 : 2;
+		if (optr + needed > nDestLen) break;
 
-		chMade = ((chRest | (pszSrc[i] >> (2 + nRestCount))) & 0x3f);
-		chRest = (((pszSrc[i] << (8 - (2 + nRestCount))) >> 2) & 0x3f);
-
-		nRestCount += 2;
-
-		if (nRestCount < 6)
-			pszDest[nDestPos++] = chMade + 0x3c;
+		b1 = pszSrc[iptr++] ^ 0xeb;
+		if (i < 2)
+		{
+			bcal = b1;
+			bcal >>= 2;
+			bflag1 = bcal;
+			bcal &= 0x3c;
+			b1 &= 3;
+			bcal |= b1;
+			bcal += 0x3b;
+			pszDest[optr++] = (char)bcal;
+			bflag2 = (bflag1 & 3) | (bflag2 << 2);
+		}
 		else
 		{
-			if (nDestPos < nDestLen - 1)
-			{
-				pszDest[nDestPos++]	= chMade + 0x3c;
-				pszDest[nDestPos++]	= chRest + 0x3c;
-			}
-			else
-				pszDest[nDestPos++] = chMade + 0x3c;
-
-			nRestCount	= 0;
-			chRest		= 0;
+			bcal = b1;
+			bcal &= 0x3f;
+			bcal += 0x3b;
+			pszDest[optr++] = (char)bcal;
+			b1 >>= 2;
+			b1 &= 0x30;
+			b1 |= bflag2;
+			b1 += 0x3b;
+			pszDest[optr++] = (char)b1;
+			bflag2 = 0;
 		}
+		i++;
+		i %= 3;
 	}
 
-	if (nRestCount > 0)
-		pszDest[nDestPos++] = chRest + 0x3c;
+	if (i == 0)
+	{
+		pszDest[optr] = '\0';
+		return optr;
+	}
 
-	pszDest[nDestPos] = '\0';
+	if (optr < nDestLen)
+		pszDest[optr++] = bflag2 + 0x3b;
 
-	return nDestPos;
+	pszDest[optr] = '\0';
+	return optr;
 }
 
 int  WINAPI fnDecode6BitBuf(char *pszSrc, char *pszDest, int nDestLen)
 {
-	int				nLen = strlen((const char *)pszSrc);
-	int				nDestPos = 0, nBitPos = 2;
-	int				nMadeBit = 0;
-	unsigned char	ch, chCode, tmp;
+	int ilen = (int)strlen(pszSrc);
+	int iptr = 0;
+	int optr = 0;
+	BYTE b1, b2, b3, b4;
+	int i = 0;
 
-	for (int i = 0; i < nLen; i++)
+	for (i = 0; i < ilen / 4; i++)
 	{
-		if ((pszSrc[i] - 0x3c) >= 0)
-			ch = pszSrc[i] - 0x3c;
-		else
-		{
-			nDestPos = 0;
-			break;
-		}
+		if (optr + 3 > nDestLen) break;
 
-		if (nDestPos >= nDestLen) break;
-
-		if ((nMadeBit + 6) >= 8)
-		{
-			chCode = (tmp | ((ch & 0x3f) >> (6 - nBitPos)));
-			pszDest[nDestPos++] = chCode;
-
-			nMadeBit = 0;
-
-			if (nBitPos < 6) 
-				nBitPos += 2;
-			else
-			{
-				nBitPos = 2;
-				continue;
-			}
-		}
-
-		tmp = ((ch << nBitPos) & Decode6BitMask[nBitPos - 2]);
-
-		nMadeBit += (8 - nBitPos);
+		b1 = pszSrc[iptr++] - 0x3b;
+		b2 = pszSrc[iptr++] - 0x3b;
+		b3 = pszSrc[iptr++] - 0x3b;
+		b4 = pszSrc[iptr++] - 0x3b;
+		pszDest[optr++] = ((b1 & 3) | ((b1 & 0x3c) << 2) | (b4 & 0x0c)) ^ 0xeb;
+		pszDest[optr++] = ((b2 & 3) | ((b2 & 0x3c) << 2) | ((b4 & 0x03) << 2)) ^ 0xeb;
+		pszDest[optr++] = ((b3 & 0x3f) | ((b4 & 0x30) << 2)) ^ 0xeb;
 	}
 
-	//	pszDest[nDestPos] = '\0';
+	ilen -= i * 4;
+	if (ilen == 2)
+	{
+		if (optr + 1 > nDestLen) return optr;
+		b1 = pszSrc[iptr++] - 0x3b;
+		b2 = pszSrc[iptr++] - 0x3b;
+		pszDest[optr++] = ((b1 & 3) | ((b1 & 0x3c) << 2) | ((b2 & 0x03) << 2)) ^ 0xeb;
+	}
+	else if (ilen == 3)
+	{
+		if (optr + 2 > nDestLen) return optr;
+		b1 = pszSrc[iptr++] - 0x3b;
+		b2 = pszSrc[iptr++] - 0x3b;
+		b3 = pszSrc[iptr++] - 0x3b;
+		pszDest[optr++] = ((b1 & 3) | ((b1 & 0x3c) << 2) | (b3 & 0x0c)) ^ 0xeb;
+		pszDest[optr++] = ((b2 & 3) | ((b2 & 0x3c) << 2) | ((b3 & 0x03) << 2)) ^ 0xeb;
+	}
 
-	return nDestPos;
+	return optr;
 }
 
 int WINAPI fnEncodeMessage(_LPTDEFAULTMESSAGE lptdm, char *pszBuf, int nLen)

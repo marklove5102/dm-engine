@@ -1984,7 +1984,6 @@ void CGameControl::SEND_PTLogin_Req(const char * name, const char * passWd)
 	}*/
 
 	//传世封包
-	g_Login.SetLoginID(name);
 	char				szPacket[64];
 	memset(szPacket, 0 , 64);
 	wsprintf(szPacket, "%s/%s", name, passWd);
@@ -2209,19 +2208,20 @@ void CGameControl::MSG_Login_Error_Ack(const char * msg,int iLen)
 //传世选择服务器,自动返回选择服务器
 void CGameControl::MSG_Login_Succ(const char * msg,int iLen)
 {
-	string txt = "传奇世界";
+	string txt = g_Login.GetGroupName(); // 获取选择的服务器组名
+	// 设置玩家登录成功的登录ID
+	g_Login.SetLoginID(msg+1);
 	//txt.append(msg, iLen);
-	g_pNet->SendBuf(SERVER_GAME, (char*)txt.c_str(), 0, 104, false);	
+	// 告诉服务端寻找选择角色服务器
+	g_pNet->SendBuf(SERVER_GAME, (char*)txt.c_str(), 0, 104, false);
 }
 
 //传世方法,返回成功,直接进入角色相关界面, 到这里表已经登陆成功了
 void CGameControl::MSG_Login_Ack(const char * msg,int iLen)
 {
 	//for 传世 iLen 长度为0即没有角色, 进入角色创建界面
-	LPPACKETMSG lpPacketMsg = (LPPACKETMSG)msg;	
-
-	unsigned long long qwDigitID = 0;
-	LoginData        *stLoginData = NULL;
+	//unsigned long long qwDigitID = 0;
+	//LoginData        *stLoginData = NULL;
 	SRoleList        *stRoleList = NULL;
 	VString roleList;
 
@@ -2230,39 +2230,32 @@ void CGameControl::MSG_Login_Ack(const char * msg,int iLen)
 	g_Login.SetThirdChannel("");
 	g_Login.SetThirdUserID("");
 
-	char poptang_str[66] = {0};
-	sprintf(poptang_str,"%I64d",qwDigitID);
-	
-	g_Login.SetPoptang_str(poptang_str);
+	//char poptang_str[66] = {0};
+	//sprintf(poptang_str,"%I64d",qwDigitID);
+	//g_Login.SetPoptang_str(poptang_str);
 
 	g_pControl->Msg(MSG_CTRL_CREATECHARWND,OPER_CLOSE);   
 	g_pControl->Msg(MSG_CTRL_SELECTCHARWND,OPER_CREATE);
 
-	BYTE byNum = lpPacketMsg->stDefMsg.nRecog;
-
-	if(byNum > 0){
-		//*11WAD/0/225/1/0/ 5
-		//s40:=s40 + sChrName + '/' + sJob + '/' + sHair + '/' + sLevel + '/' + IntToStr(btSex) + '/'+inttostr(ChrRecord.data.wTRJJ)+'/'+sTrfl+'/';
-		//mysql 版本 s40 := sChrName + '/' + sJob + '/' + sHair + '/' + sLevel + '/' + IntToStr(btSex) + '/2014-6-30/0/';
-		roleList = StringUtil::split(msg, "/");
-		stRoleList = new SRoleList();
-		stRoleList->byRoleCount = roleList.size() / 7;
-		for (int i =0; i < stRoleList->byRoleCount; i ++)
-		{
-			int index = i * 7;
-			strcpy(stRoleList->astRoleList[i].szRoleName, roleList[index].c_str());  //lzhez 修正只能显示一个角色
-			stRoleList->astRoleList[i].byJob = StringUtil::toInt(roleList[index+1]);
-			stRoleList->astRoleList[i].byHair = StringUtil::toInt(roleList[index+2]);
-			stRoleList->astRoleList[i].wLevel = StringUtil::toInt(roleList[index+3]);
-			stRoleList->astRoleList[i].bySex = StringUtil::toInt(roleList[index+4]);
-			strcpy(stRoleList->astRoleList[i].szDeleteTime, roleList[index+5].c_str());
-			stRoleList->astRoleList[i].byDelete = StringUtil::toInt(roleList[index+6]);
-		}
-		g_OtherData.SetCharNo(stRoleList->bySelect);
-	}else
+	// 解析角色列表
+	//*11WAD/0/225/1/0/ 5
+	//s40:=s40 + sChrName + '/' + sJob + '/' + sHair + '/' + sLevel + '/' + IntToStr(btSex) + '/'+inttostr(ChrRecord.data.wTRJJ)+'/'+sTrfl+'/';
+	//mysql 版本 s40 := sChrName + '/' + sJob + '/' + sHair + '/' + sLevel + '/' + IntToStr(btSex) + '/2014-6-30/0/';
+	roleList = StringUtil::split(msg, "/");
+	stRoleList = new SRoleList();
+	stRoleList->byRoleCount = roleList.size() / 7;
+	for (int i =0; i < stRoleList->byRoleCount; i ++)
 	{
-
+		int index = i * 7;
+		strcpy(stRoleList->astRoleList[i].szRoleName, roleList[index].c_str());  //lzhez 修正只能显示一个角色
+		stRoleList->astRoleList[i].byJob = StringUtil::toInt(roleList[index+1]);
+		stRoleList->astRoleList[i].byHair = StringUtil::toInt(roleList[index+2]);
+		stRoleList->astRoleList[i].wLevel = StringUtil::toInt(roleList[index+3]);
+		stRoleList->astRoleList[i].bySex = StringUtil::toInt(roleList[index+4]);
+		strcpy(stRoleList->astRoleList[i].szDeleteTime, roleList[index+5].c_str());
+		stRoleList->astRoleList[i].byDelete = StringUtil::toInt(roleList[index+6]);
 	}
+	g_OtherData.SetCharNo(stRoleList->bySelect);
 
 	//自动进入游戏
 	if(g_OtherData.IsAutoEnter())
