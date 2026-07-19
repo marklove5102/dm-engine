@@ -1,0 +1,20 @@
+class CCtrlEdit : public CControl
+{
+public:
+	void  	SetPwd(bool b);
+	bool  	IsPwd();
+	void  	Clear();
+	const 	char *GetText();
+	void  	SetText(const char * sText);
+	int   	GetNum();
+
+	void 	SetMaxLength(int iLength); 
+	void 	InsertText(char* sText);
+
+	void	SetDigital(bool bDigital);
+	void    SetVisualWords(int iWords);
+	void    SetCursorColor(DWORD dwColor);
+};
+
+$renaming CCtrlEdit @ Edit
+

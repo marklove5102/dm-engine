@@ -1,0 +1,27 @@
+tolua_readonly CControl* g_pThis @ this;
+tolua_readonly CMainWnd* g_pControl @ ui;
+tolua_readonly CInput*   g_pInput @input;
+tolua_readonly CCtrlWindowX*  g_pWnd @wnd;
+tolua_readonly CDemonAttr* g_pDemonAttr @ SelfDemonAttr;
+tolua_readonly CCharacter* g_pChar @ SELF;
+
+//UI
+void PopupWindow(const char* name);
+void CloseWindow(const char* name);
+void PopSimpleAlert(const char* str);
+void PopSimpleComfirm(const char* str);
+void PopEditBox(const char* str);
+void SwitchTalkViewer();
+
+//AI
+void UsePackageGood(int pos);
+void ClickPackageGood(int pos);
+bool IsCanContain(int type,int mode);
+void ClickAvatarGood(int type);
+CGood* GetDropGood();                   
+int  GetDropGoodPos();                  
+int  GetDropFromWnd();  
+int  GetCharacterMagicID(int i);    
+int  GetLearnedMagicNum();             
+                
+

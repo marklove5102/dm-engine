@@ -1,0 +1,17 @@
+class CInput
+{
+public:
+	bool IsCapsLock();
+	bool IsNumLock();
+	bool IsShift();
+	bool IsCtrl();
+	bool IsAlt();
+	
+	bool IsLeftButton();
+	bool IsRightButton();
+	bool IsMiddleButton();
+	
+	bool IsEnable();
+	bool IsKeyDown(BYTE vkey);
+};
+

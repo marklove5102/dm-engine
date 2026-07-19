@@ -1,0 +1,304 @@
+#include "demondata.h"
+#include "GameData.h"
+#include "SwyGuide.h"
+#include "Global\GlobalMsg.h"
+#include "BaseClass/Control/Control.h"
+#include "GameControl\GameControl.h"
+#include "GameMap\GameMap.h"
+#include "BaseClass/Audio/Audio.h"
+#include "TalkMgr.h"
+
+CDemonData g_DemonData;
+
+CDemonData::CDemonData(void)
+{
+	Clear();
+}
+
+CDemonData::~CDemonData(void)
+{
+}
+
+void CDemonData::Clear()
+{
+	m_iAnger = 0;
+	m_VPets.clear();
+	m_VWaitMember.clear();
+
+	m_strGateMask = "心魔";
+	m_iAngerMax = 1;
+	m_iAngerThreshold = 0;
+	m_iGate = 0;
+	m_iYuanBao = 0;
+	m_iYuanBaoMax = 0;
+	m_bYuanBaoTower = false;
+	m_bLayerFull = false;
+	m_iYBTowerLightFram = -1;
+
+	m_dwAngerStartTime = 0;
+	m_dwAngerDuration = 0;
+	m_iReLivePrice = 3;
+	m_eSwyGuideState = SWY_GSTATE_NONE;
+	m_bSwyGuideMap = false;
+	m_bSwyTongdaoMap = false;
+	m_bSwyBaoZangMap = false;
+	m_bShowLayerFullMsgType = 0;
+	m_iStartShowSwyGuideLzMsg = 0;
+	m_iSwyGamblingPrizeLevel = 0;
+	m_strSwyGoldMsg.clear();
+	m_strSwyGamblingMsg.clear();
+	m_dwSwyGoldCount = 0;
+	m_sTgMagicLenData.dwItemID = 0;
+	m_sTgMagicLenData.wMaxLingLi = 1000;
+	m_sTgMagicLenData.wCurLingLi = 0;
+	m_sTgMagicLenData.byOpenState = 0;
+	m_sTgMagicLenData.byAddTreasureType = 0;
+	m_VSwyGamblingPrize.clear();
+
+
+	m_iTgMagicLenDataRequirePlace = 0;
+
+}
+
+CDemonPet* CDemonData::GetPetByID(DWORD id)
+{
+	for(int ii = 0;ii < (int)m_VPets.size();ii++)
+	{
+		if(m_VPets.at(ii).GetID() == id)
+		{
+			return &m_VPets.at(ii);
+		}
+	}
+	return NULL;
+}
+
+void CDemonData::DelPet(DWORD id)
+{
+	VDemonPet::iterator itr;
+	for(itr = m_VPets.begin();itr != m_VPets.end();itr++)
+	{
+		if(itr->GetID() == id)
+		{
+			m_VPets.erase(itr);
+			break;
+		}
+	}
+}
+
+CDemonPet* CDemonData::GetPetByIndex(int i)
+{
+	if(i < 0 || i >= (int)m_VPets.size())
+		return NULL;
+
+	return &m_VPets.at(i);
+}
+
+bool CDemonData::DelWait(const char* name)
+{
+	VWaitMember::iterator itr;
+	for(itr = m_VWaitMember.begin();itr != m_VWaitMember.end();itr++)
+	{
+		if(stricmp(name,itr->GetName()) == 0 )
+		{
+			m_VWaitMember.erase(itr);
+			return true;
+		}
+	}
+	return false;
+}
+
+void CDemonData::SetAngerTime(DWORD dwStart,DWORD dwDura)
+{
+	m_dwAngerStartTime = dwStart;
+	m_dwAngerDuration = dwDura;
+}
+
+int CDemonData::CanAngerKill()
+{
+	if(m_iAngerMax == 0)
+	{
+		return -1;
+	}
+
+	if(m_iAnger < m_iAngerThreshold)
+	{
+		g_TalkMgr.PushSysTalk("镇魔力不足，无法发动强力攻击!");
+		return -2;
+	}
+
+	if(GetTickCount() > m_dwAngerStartTime + m_dwAngerDuration)
+	{
+		return 1;
+	}
+	else
+	{
+		g_TalkMgr.PushSysTalk("你控制的心魔已经处在强力攻击状态!");
+		return -3;
+	}
+}
+
+void CDemonData::ClearTower(const char* temp)
+{
+	g_OtherData.GetCommonConfirmVector().clear();
+	g_pControl->Msg(MSG_CTRL_PERSONS_GUIDE_WND,OPER_CLOSE);//人物指南窗口
+	g_pControl->Msg(MSG_CTRL_COMMON_CONFIRM_WND,OPER_CLOSE);//请求拜师、交易等确认窗口
+
+	//天魔宝藏的两张地图
+	if(stricmp(temp,"SWYTONGDAO") == 0)
+		m_bSwyTongdaoMap = true;
+	else
+		m_bSwyTongdaoMap = false;
+
+	if(stricmp(temp,"SWYBAOZANG") == 0)
+		m_bSwyBaoZangMap = true;
+	else
+		m_bSwyBaoZangMap = false;
+
+	//如果是神威狱训练场，设置标记，否则清除
+	if(stricmp(temp,"SWYSL") == 0)
+	{
+		SetSwyGuideMap(true);
+		SetYuanBao(0);
+		SetYuanBaoMax(300);
+		SetYuanBaoTower(true);
+	}
+	else
+	{
+		SetSwyGuideMap(false);
+		SetSwyGuideState(SWY_GSTATE_NONE);
+	}
+
+	if(strnicmp(temp,"SWY",3) == 0 )
+	{
+		if(m_bSwyGuideMap)//神威狱训练场,不显示总奖池信息
+		{
+			g_pControl->Msg(MSG_CTRL_GAMBLING_WND,OPER_CLOSE);
+			g_pControl->Msg(MSG_CTRL_NEW_GAMBLING_WND,OPER_CLOSE);			
+		}
+	}
+	else
+	{
+		g_pControl->Msg(MSG_CTRL_GAMBLING_WND,OPER_CLOSE);
+		g_pControl->Msg(MSG_CTRL_TG_MAGIC_LEN,OPER_CLOSE);
+	}
+
+	//在神威狱地图中第一层到５层，进入地图都要求提示还剩余的任务时间
+	char cTemp = 0;
+	if(strlen(temp) > 3)
+		cTemp = temp[3];
+
+	if(strnicmp(temp,"SWY",3) == 0 && cTemp >= '1' && cTemp <= '5')
+	{
+		DWORD dwCurrTime = GetTickCount();
+		DWORD dwEndTime = g_OtherData.GetCenserStartTime() + g_OtherData.GetCenserDurTime();
+
+		if(dwCurrTime < dwEndTime)
+		{
+			int iLeftMinutes = (dwEndTime - dwCurrTime + 30000) / 60000;
+			if(iLeftMinutes <= 60)
+			{
+				char strTemp[128] = {0};
+				sprintf(strTemp,"%d分钟后，镇魔香燃尽之时你的任务将失败，请务必抓紧！",iLeftMinutes);
+				g_TalkMgr.PushSysTalk(strTemp);
+			}
+		}
+	}
+	else
+	{
+		if(!m_bSwyTongdaoMap && !m_bSwyBaoZangMap)
+		{
+			g_OtherData.SetCenserStartTime(0);
+			g_OtherData.SetCenserDurTime(0);
+		}
+
+		if(!m_bSwyGuideMap)
+			m_bYuanBaoTower = false;
+
+		m_bLayerFull = false;
+		if(stricmp(temp,"SWYZB") == 0)
+		{
+			g_TalkMgr.PushServerTalk("飞射快捷栏中镇魔符或镇魔神符可以召唤其他心魔帮助战斗");
+			g_TalkMgr.PushServerTalk("镇魔符和镇魔神符可以维持被召唤心魔的战斗力");
+			g_TalkMgr.PushServerTalk("快速激发心魔战斗力可以换来一段时间的强力攻击");
+			g_TalkMgr.PushServerTalk("如有问题彩虹精灵将随时提供查询服务");
+			g_TalkMgr.PushServerTalk("Ctrl+P可以呼出心魔控制界面");
+			g_TalkMgr.PushServerTalk("神威狱试练场以体验为主，各种奖励请到神威狱中获取");
+		}
+	}
+}
+
+void CDemonData::SetSwyGuideState(E_Swy_GuideState eState)
+{
+	m_eSwyGuideState = eState;
+}
+
+E_Swy_GuideState CDemonData::GetSwyGuideState()
+{ 
+	return m_eSwyGuideState;
+}
+
+void CDemonData::SetSwyGuideMap(bool b)
+{ 
+	m_bSwyGuideMap = b;
+
+	if(b)
+	{
+		g_pControl->PopupWindow(MSG_CTRL_SWYGUIDE_WND,OPER_CREATE);
+		int i = SELF.PackageGood().FindGoodByStdmode(3,29);
+
+		if(i >= MAX_PACKAGE_NUM)//腰带上有有镇魔符测试，或镇魔神符测试
+		{
+			SetSwyGuideState(SWY_GSTATE_WAISTBAND_U);
+		}
+		else if(i>=0)//腰带上没有包裹里有
+		{
+			SetSwyGuideState(SWY_GSTATE_WAISTBAND_F);
+		}
+		else
+		{
+			SetSwyGuideState(SWY_GSTATE_NONE);
+		}
+	}
+	else
+	{
+		g_pControl->PopupWindow(MSG_CTRL_SWYGUIDE_WND,OPER_CLOSE);
+        SetSwyGuideState(SWY_GSTATE_NONE);
+	}
+}
+
+bool CDemonData::IsSwyGuideMap()
+{ 
+	return m_bSwyGuideMap;
+}
+
+void  CDemonData::SetYuanBao(int i)
+{
+	//奖励值增加后播放一个音效
+	if(i > m_iYuanBao)
+	{
+		int iSelfX,iSelfY;
+		SELF.GetXY(iSelfX,iSelfY);
+		g_pAudio->PlayEx(EAT_OTHER,808,g_nRand++,iSelfX,iSelfX,iSelfY,iSelfY,true);
+	}
+
+	m_iYuanBao = i; 
+}
+void  CDemonData::SetLayerFull(bool b)
+{ 
+	if(!b && m_VPets.size() > 0 && m_bLayerFull)//stop fire
+	{
+        g_pControl->PopupWindow(MSG_CTRL_DEMON_PANEL_WND,OPER_CREATE,98);
+	}
+	else if(b && m_VPets.size() > 0 && !m_bLayerFull)//start fire
+	{
+		g_pControl->PopupWindow(MSG_CTRL_DEMON_PANEL_WND,OPER_CREATE,99);
+	}
+
+	if(b && !m_bLayerFull)//从不满到满
+		SetShowLayerFullMsgType(1);
+	else if(!b && m_bLayerFull)//从满到不满
+		SetShowLayerFullMsgType(2);
+
+	m_bLayerFull = b; 
+}
+

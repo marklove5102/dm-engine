@@ -1,0 +1,14 @@
+class CCtrlButton :	public CControl
+{
+	virtual bool OnClick(int iButton);
+ 
+	void    SetAutoSwitch(bool bAuto){ m_bAutoSwitch = bAuto; }
+	bool 	IsSmall(void);
+	void 	ReloadTex(int iTexIndex);
+	void 	ReloadTex(int wTex,int wMTex,int wCTex,int wDTex = 0);
+	void 	SetSwitchTex(int wTex,int wMTex,int wCTex,int wDTex = 0);
+	void 	SetState(bool _bSwitchState);
+	void 	SetEffectTex(int wEff,int iOffX,int iOffY);
+};
+
+

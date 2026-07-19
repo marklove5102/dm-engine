@@ -1,0 +1,42 @@
+// include the header that makes these files generate valid code
+
+$#include "Global/Global.h"
+$#include "Global/MathUtil.h"
+$#include "BaseClass/Control/Control.h"
+$#include "BaseClass/Control/CtrlButton.h"
+$#include "BaseClass/Control/CtrlRadio.h"
+$#include "BaseClass/Control/CtrlEdit.h"
+$#include "BaseClass/Control/CtrlTip.h"
+$#include "BaseClass/Control/CtrlScroll.h"
+$#include "BaseClass/Control/CtrlWindowX.h"
+$#include "BaseClass/Misc/Input.h"
+$#include "WndClass/MainWnd/MainWnd.h"
+$#include "BaseClass/Control/GoodGrid.h"
+
+$#include "LuaGlobal.h"
+
+typedef unsigned long DWORD;
+typedef unsigned char BYTE;
+
+$pfile "Control.pkg"
+
+$pfile "Button.pkg"
+
+$pfile "Radio.pkg"
+
+$pfile "Edit.pkg"
+
+$pfile "Tip.pkg"
+
+$pfile "Scroll.pkg"
+
+$pfile "WindowX.pkg"
+
+$pfile "Character.pkg"
+
+$pfile "Good.pkg"
+
+$pfile "GoodGrid.pkg"
+
+
+$pfile "HelpFunc.pkg"

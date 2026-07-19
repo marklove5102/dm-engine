@@ -1,0 +1,137 @@
+class CControl
+{
+public:
+	const char* GetName();
+	void  SetName(const char* name);
+	
+	int GetX();
+	int GetY();
+	int GetWidth();
+	int GetHeight();
+	int GetScreenX();
+	int GetScreenY();
+	int GetMX();
+	int GetMY();
+
+	CControl * GetParent();
+	
+	bool CanFocus();
+	void SetNoFocus(bool b);
+	
+	void SetFrame(int iFrame,DWORD dwFrameColor, bool bAmb);
+	void SetMarge(int iMarge);
+	int  GetMarge();
+	
+	void SetText(const char * sText);
+	const char * GetText();
+	
+	void SetBack(DWORD dwBackcolor);
+	void SetColor(DWORD dwColor);
+	DWORD GetColor();
+	
+	void Show();
+	void Hide();
+	bool IsShow();
+	
+	void Enable();
+	void Disable();
+	bool IsEnable();
+	
+	void SetMode(bool bMode);
+	bool GetMode();
+	
+	bool IsMouseOn(int iX,int iY);
+	bool IsClick();
+	bool IsRBClick();
+	bool IsParent(CControl * pCtrl);
+	
+	bool IsNoChangeLevel();
+	int  GetControlMode();
+	
+	void SetTips(const char * str);
+	const char * GetTips();
+	
+	void SetTipTime(int i);
+	int  GetTipTime();
+	
+	bool SetMask(int wMask,int w,int h);
+
+	virtual bool Move(int iX,int iY);
+	virtual bool ReSize(int iW,int iH);
+
+	virtual bool SetFocus();
+	virtual bool KillFocus(CControl * pNewFocus);
+	
+	virtual void SetColorIndex(int c);
+	virtual DWORD GetColorByIndex();
+	
+	inline BYTE IsFadeIn();
+	void SetFadeIn(BYTE byStep);
+
+	inline CCtrlMainWin* GetMainWnd() const;
+};
+
+/****************************************
+// 容器类，可以包含其它控件
+*****************************************/
+class CControlContainer : public CControl
+{
+public:
+	CControl * GetControls();		// 得到子控件链表的头
+	void	SetControls(CControl * pCtrl);		// 设置子控件链表的头
+	BOOL	IsSonCtrl(CControl *pControl);							// 是否是本控件的子控件
+
+	CControl*    FindControl(int iPos);                         // 查找指定位置的控件
+	CControl*    FindControlByName(const char* name,eCtrlMode filter);// 根据名字查找到控件
+	void Update();	
+};
+
+/****************************************
+	Window
+*****************************************/
+class  CCtrlWindow : public CControlContainer
+{
+public:
+	void SetLifeTime(int dwTime);
+	int  GetLifeTime();
+};
+
+class CMainWnd : public CCtrlWindow
+{
+public:
+	static void UpdateLayOut();
+	static void DisableIME();
+
+	inline int GetMouseX();
+	inline int GetMouseY();
+	inline void GetMouseXY(int &iX,int &iY);
+	void SetMouseOnID(UINT uID,CControl * pCtrl = NULL);
+	UINT GetMouseOnID();
+	CControl*	GetMouseOnCtrl();
+	void SetTipOwnerWnd(CControl *p);
+	CControl * GetTipOwnerWnd();
+	CCtrlTip*  GetTipWnd();
+	void SetHideCursor(BOOL b);
+	BOOL IsHideCursor();
+	inline int GetGameState() const;
+
+	inline CControl * GetFocusCtrl();
+	void SetFocusCtrl(CControl * pCtrl);
+
+	void ADDCONTROL(CControl* pCtrl);
+	void DELETECONTROL(CControl** pCtrl);
+};
+
+$renaming CControl @ Control 
+$renaming CControlContainer @ Container
+$renaming CCtrlWindow @ Window
+$renaming CMainWnd    @ MainWnd
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,201 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{6FDBE2F0-8000-45F9-ABEE-9358196F9929}</ProjectGuid>
+    <RootNamespace>GameData</RootNamespace>
+    <Keyword>Win32Proj</Keyword>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>NotSet</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>NotSet</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.40219.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(SolutionDir)$(Configuration)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(Configuration)\</IntDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(SolutionDir)$(Configuration)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(Configuration)\</IntDir>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IncludePath);$(DirectxSDK)Include;C:\Users\mengling\Desktop\Directx SDK 9.0\Include</IncludePath>
+    <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(LibraryPath);$(DirectxSDK)Lib;C:\Users\mengling\Desktop\Directx SDK 9.0\Lib</LibraryPath>
+    <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(LibraryPath);$(DirectxSDK)Lib;</LibraryPath>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IncludePath);$(DirectxSDK)Include;</IncludePath>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>../;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ExceptionHandling>Async</ExceptionHandling>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
+      <AdditionalIncludeDirectories>../;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <Optimization>Disabled</Optimization>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="ActionInf.cpp" />
+    <ClCompile Include="ActionStruct.cpp" />
+    <ClCompile Include="BoothData.cpp" />
+    <ClCompile Include="Character.cpp" />
+    <ClCompile Include="CharacterAttr.cpp" />
+    <ClCompile Include="ConfigData.cpp" />
+    <ClCompile Include="DirtyWords.cpp" />
+    <ClCompile Include="FindGood.cpp" />
+    <ClCompile Include="GameData.cpp" />
+    <ClCompile Include="GameGlobal.cpp" />
+    <ClCompile Include="GlobalStrMgr.cpp" />
+    <ClCompile Include="Good.cpp" />
+    <ClCompile Include="GoodPet.cpp" />
+    <ClCompile Include="GuildData.cpp" />
+    <ClCompile Include="ItemCfgMgr.cpp" />
+    <ClCompile Include="LoginData.cpp" />
+    <ClCompile Include="MagicCtrlMgr.cpp" />
+    <ClCompile Include="MagicData.cpp" />
+    <ClCompile Include="MapArray.cpp" />
+    <ClCompile Include="MapFinder.cpp" />
+    <ClCompile Include="MenuManager.cpp" />
+    <ClCompile Include="MsgBoxMgr.cpp" />
+    <ClCompile Include="NpcData.cpp" />
+    <ClCompile Include="OtherData.cpp" />
+    <ClCompile Include="OtherPlayer.cpp" />
+    <ClCompile Include="PetData.cpp" />
+    <ClCompile Include="PhyleData.cpp" />
+    <ClCompile Include="ProtocolCfg.cpp" />
+    <ClCompile Include="RangeXmlMgr.cpp" />
+    <ClCompile Include="RelationData.cpp" />
+    <ClCompile Include="SimpleCharacter.cpp" />
+    <ClCompile Include="SimpleGood.cpp" />
+    <ClCompile Include="SkillXmlMgr.cpp" />
+    <ClCompile Include="TagText.cpp" />
+    <ClCompile Include="TalkMgr.cpp" />
+    <ClCompile Include="TalkName.cpp" />
+    <ClCompile Include="TaskData.cpp" />
+    <ClCompile Include="TipsCfg.cpp" />
+    <ClCompile Include="TradeData.cpp" />
+    <ClCompile Include="WooolStoreData.cpp" />
+    <ClCompile Include="XmlCfg.cpp" />
+    <ClCompile Include="ObjectLink\Glyph.cpp" />
+    <ClCompile Include="ObjectLink\MultiLine.cpp" />
+    <ClCompile Include="ObjectLink\StringLine.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="ActionInf.h" />
+    <ClInclude Include="ActionStruct.h" />
+    <ClInclude Include="BoothData.h" />
+    <ClInclude Include="Character.h" />
+    <ClInclude Include="CharacterAttr.h" />
+    <ClInclude Include="ConfigData.h" />
+    <ClInclude Include="DirtyWords.h" />
+    <ClInclude Include="FindGood.h" />
+    <ClInclude Include="GameData.h" />
+    <ClInclude Include="GameDefine.h" />
+    <ClInclude Include="GameGlobal.h" />
+    <ClInclude Include="GlobalStrMgr.h" />
+    <ClInclude Include="Good.h" />
+    <ClInclude Include="GoodPet.h" />
+    <ClInclude Include="GuildData.h" />
+    <ClInclude Include="ItemCfgMgr.h" />
+    <ClInclude Include="LoginData.h" />
+    <ClInclude Include="MacroDefine.h" />
+    <ClInclude Include="MagicCtrlMgr.h" />
+    <ClInclude Include="MagicData.h" />
+    <ClInclude Include="MagicDefine.h" />
+    <ClInclude Include="MapArray.h" />
+    <ClInclude Include="MapFinder.h" />
+    <ClInclude Include="MenuManager.h" />
+    <ClInclude Include="MsgBoxMgr.h" />
+    <ClInclude Include="NpcData.h" />
+    <ClInclude Include="OtherData.h" />
+    <ClInclude Include="OtherPlayer.h" />
+    <ClInclude Include="PacketData.h" />
+    <ClInclude Include="PetData.h" />
+    <ClInclude Include="PhyleData.h" />
+    <ClInclude Include="ProtocolCfg.h" />
+    <ClInclude Include="RangeStruct.h" />
+    <ClInclude Include="RangeXmlMgr.h" />
+    <ClInclude Include="RelationData.h" />
+    <ClInclude Include="ReserveData.h" />
+    <ClInclude Include="SimpleCharacter.h" />
+    <ClInclude Include="SimpleGood.h" />
+    <ClInclude Include="SkillXmlMgr.h" />
+    <ClInclude Include="TagText.h" />
+    <ClInclude Include="TalkMgr.h" />
+    <ClInclude Include="TalkName.h" />
+    <ClInclude Include="TaskData.h" />
+    <ClInclude Include="TipsCfg.h" />
+    <ClInclude Include="TradeData.h" />
+    <ClInclude Include="UnionStruct.h" />
+    <ClInclude Include="WooolStoreData.h" />
+    <ClInclude Include="XmlCfg.h" />
+    <ClInclude Include="ObjectLink\Glyph.h" />
+    <ClInclude Include="ObjectLink\MultiLine.h" />
+    <ClInclude Include="ObjectLink\StringLine.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Character.inl" />
+    <None Include="CharacterAttr.inl" />
+    <None Include="GameData.inl" />
+    <None Include="Good.inl" />
+    <None Include="GoodDemon.inl" />
+    <None Include="MagicData.inl" />
+    <None Include="NpcData.inl" />
+    <None Include="OtherData.inl" />
+    <None Include="OtherPlayer.inl" />
+    <None Include="PetData.inl" />
+    <None Include="SimpleCharacter.inl" />
+    <None Include="ReadMe.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Global\Global.vcxproj">
+      <Project>{2bc6ef05-6f69-48f9-b171-6584704e84d0}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

@@ -1,0 +1,156 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{101B809C-827D-4AF2-A1C9-3A4508589B17}</ProjectGuid>
+    <RootNamespace>Control</RootNamespace>
+    <Keyword>Win32Proj</Keyword>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.40219.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Debug\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Debug\</IntDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Release\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Release\</IntDir>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IncludePath);$(DirectxSDK)Include;C:\Users\mengling\Desktop\Directx SDK 9.0\Include</IncludePath>
+    <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(LibraryPath);$(DirectxSDK)Lib;C:\Users\mengling\Desktop\Directx SDK 9.0\Lib</LibraryPath>
+    <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(LibraryPath);$(DirectxSDK)Lib;</LibraryPath>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IncludePath);$(DirectxSDK)Include;</IncludePath>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>..\..\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ExceptionHandling>Async</ExceptionHandling>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+    </ClCompile>
+    <Lib>
+      <OutputFile>$(OutDir)Control.lib</OutputFile>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <InlineFunctionExpansion>Default</InlineFunctionExpansion>
+      <OmitFramePointers>false</OmitFramePointers>
+      <AdditionalIncludeDirectories>../..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <StringPooling>true</StringPooling>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+    <Lib>
+      <OutputFile>$(OutDir)Control.lib</OutputFile>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="ArrowTip.cpp" />
+    <ClCompile Include="CommonViewer.cpp" />
+    <ClCompile Include="Control.cpp" />
+    <ClCompile Include="ControlContainer.cpp" />
+    <ClCompile Include="CtrlButton.cpp" />
+    <ClCompile Include="CtrlEdit.cpp" />
+    <ClCompile Include="CtrlGrid.cpp" />
+    <ClCompile Include="CtrlLabel.cpp" />
+    <ClCompile Include="CtrlMainWin.cpp" />
+    <ClCompile Include="CtrlMenuButton.cpp" />
+    <ClCompile Include="CtrlMenuWnd.cpp" />
+    <ClCompile Include="CtrlMsgBox.cpp" />
+    <ClCompile Include="CtrlMultiEdit.cpp" />
+    <ClCompile Include="CtrlRadio.cpp" />
+    <ClCompile Include="CtrlScroll.cpp" />
+    <ClCompile Include="CtrlTag.cpp" />
+    <ClCompile Include="CtrlTip.cpp" />
+    <ClCompile Include="CtrlTree.cpp" />
+    <ClCompile Include="CtrlTreeView.cpp" />
+    <ClCompile Include="CtrlWindow.cpp" />
+    <ClCompile Include="CtrlWindowS.cpp" />
+    <ClCompile Include="CtrlWindowX.cpp" />
+    <ClCompile Include="GlyphEdit.cpp" />
+    <ClCompile Include="GoodGrid.cpp" />
+    <ClCompile Include="MarkViewer.cpp" />
+    <ClCompile Include="ParserTip.cpp" />
+    <ClCompile Include="TalkViewer.cpp" />
+    <ClCompile Include="TaskTracker.cpp" />
+    <ClCompile Include="UiManager.cpp" />
+    <ClCompile Include="XmlBase.cpp" />
+    <ClCompile Include="XmlControl.cpp" />
+    <ClCompile Include="XmlUser.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="ArrowTip.h" />
+    <ClInclude Include="CommonViewer.h" />
+    <ClInclude Include="Control.h" />
+    <ClInclude Include="ControlDefine.h" />
+    <ClInclude Include="CtrlButton.h" />
+    <ClInclude Include="CtrlEdit.h" />
+    <ClInclude Include="CtrlGrid.h" />
+    <ClInclude Include="CtrlLabel.h" />
+    <ClInclude Include="CtrlMenuButton.h" />
+    <ClInclude Include="CtrlMenuWnd.h" />
+    <ClInclude Include="CtrlMsgBox.h" />
+    <ClInclude Include="CtrlMultiEdit.h" />
+    <ClInclude Include="CtrlRadio.h" />
+    <ClInclude Include="CtrlScroll.h" />
+    <ClInclude Include="CtrlTag.h" />
+    <ClInclude Include="CtrlTip.h" />
+    <ClInclude Include="CtrlTree.h" />
+    <ClInclude Include="CtrlTreeView.h" />
+    <ClInclude Include="CtrlWindowS.h" />
+    <ClInclude Include="CtrlWindowX.h" />
+    <ClInclude Include="GlyphEdit.h" />
+    <ClInclude Include="GoodGrid.h" />
+    <ClInclude Include="MarkViewer.h" />
+    <ClInclude Include="ParserTip.h" />
+    <ClInclude Include="TalkViewer.h" />
+    <ClInclude Include="TaskTracker.h" />
+    <ClInclude Include="UiManager.h" />
+    <ClInclude Include="XmlBase.h" />
+    <ClInclude Include="XmlControl.h" />
+    <ClInclude Include="XmlUser.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

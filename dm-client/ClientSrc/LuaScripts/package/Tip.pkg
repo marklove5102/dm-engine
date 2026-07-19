@@ -1,0 +1,8 @@
+class CCtrlTip : public CControl
+{
+public:
+	void SetText(const char * sText,bool bCenter);
+	void AddText(const char * str,DWORD color,bool bCenter);
+	void Clear();
+};
+

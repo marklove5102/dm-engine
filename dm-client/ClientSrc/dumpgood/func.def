@@ -1,0 +1,5 @@
+LIBRARY	dumpgood
+  EXPORTS
+  DumpGoodInfo
+  SetDemonRemainAttr
+  SetDemonRemainArmRule

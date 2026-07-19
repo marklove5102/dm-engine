@@ -1,0 +1,14 @@
+class CCtrlRadio : public CControl
+{
+public:
+	bool OnClick(int iButton);
+	bool IsChecked(void);
+	void EnableChecked();
+	void DisableChecked();
+	int  GetRadio();
+	void SetRadio(int i);
+	void AddBuddy(CCtrlRadio* buddy);
+};
+
+$renaming CCtrlRadio @ Radio
+

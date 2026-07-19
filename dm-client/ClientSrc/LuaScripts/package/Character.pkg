@@ -1,0 +1,27 @@
+class CDemonAttr
+{
+	DWORD  Get_EXP_DC1();
+	DWORD  Get_EXP_MC1();
+	DWORD  Get_EXP_SC1();
+	DWORD  Get_EXP_AC1();
+	DWORD  Get_EXP_MAC1();
+
+	DWORD  Get_EXP_DC2();
+	DWORD  Get_EXP_MC2();
+	DWORD  Get_EXP_SC2();
+	DWORD  Get_EXP_AC2();
+	DWORD  Get_EXP_MAC2();
+};
+
+class CCharacterAttr
+{
+	
+};
+
+class CCharacter : public CCharacterAttr
+{
+	BYTE  GetLevel();
+	int   GetCareer();
+};
+
+$renaming CDemonAttr @ DemonAttr

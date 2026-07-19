@@ -1,0 +1,21 @@
+
+class CCtrlScroll : public CControl
+{
+public:
+	void SetRange(int iRange);
+	int  GetRange();
+	void SetStep(int iStep);
+	int  GetStep();
+	void SetPos(int iPos);
+	int  GetPos();
+	void SetVertical(bool b);
+	void SetReceiver(CControl* pCtrl);
+	bool ReSize(int iW, int iH);
+
+	void GoUp(void);
+	void GoDown(void);
+	void SetButtonHeight(int iHeight);
+};
+
+$renaming CCtrlScroll @ Scroll
+

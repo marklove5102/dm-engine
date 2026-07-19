@@ -1,0 +1,10 @@
+class CGood
+{
+public:
+	DWORD 	GetID();
+	int 	GetStdMode();
+	DWORD	GetNeed();
+	DWORD	GetNeedLevel();	
+};
+
+$renaming CGood @ Good

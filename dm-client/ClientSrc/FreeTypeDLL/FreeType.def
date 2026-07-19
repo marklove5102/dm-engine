@@ -1,0 +1,3 @@
+LIBRARY	"FreeType"
+	EXPORTS
+	GetFreeTypeInstance

@@ -1,0 +1,405 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{398D080B-5FF8-42F6-8CDC-8671A78D9C63}</ProjectGuid>
+    <RootNamespace>GameWnd</RootNamespace>
+    <Keyword>Win32Proj</Keyword>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>NotSet</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>NotSet</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.40219.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(SolutionDir)$(Configuration)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(Configuration)\</IntDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(SolutionDir)$(Configuration)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(Configuration)\</IntDir>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IncludePath);$(DirectxSDK)Include;C:\Users\mengling\Desktop\Directx SDK 9.0\Include</IncludePath>
+    <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(LibraryPath);$(DirectxSDK)Lib;C:\Users\mengling\Desktop\Directx SDK 9.0\Lib</LibraryPath>
+    <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(LibraryPath);$(DirectxSDK)Lib;</LibraryPath>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IncludePath);$(DirectxSDK)Include;</IncludePath>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>../../;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ExceptionHandling>Async</ExceptionHandling>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
+      <AdditionalIncludeDirectories>../../;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <Optimization>Disabled</Optimization>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="ActivityLogWnd.cpp" />
+    <ClCompile Include="AdventureWnd.cpp" />
+    <ClCompile Include="AssConfigWnd.cpp" />
+    <ClCompile Include="AutoLeaveWordsWnd.cpp" />
+    <ClCompile Include="AvatarWnd.cpp" />
+    <ClCompile Include="BaoJianWnd.cpp" />
+    <ClCompile Include="BindPTMsgWnd.cpp" />
+    <ClCompile Include="BindPTWnd.cpp" />
+    <ClCompile Include="BlessCompoundWnd.cpp" />
+    <ClCompile Include="BlessZhongZhouWnd.cpp" />
+    <ClCompile Include="BoothGuideWnd.cpp" />
+    <ClCompile Include="BoothNamePrice.cpp" />
+    <ClCompile Include="BoothSelectWnd.cpp" />
+    <ClCompile Include="BoothWnd.cpp" />
+    <ClCompile Include="BoxWnd.cpp" />
+    <ClCompile Include="CaiHongHelpWnd.cpp" />
+    <ClCompile Include="ChatPanelWnd.cpp" />
+    <ClCompile Include="CheckMessageBox.cpp" />
+    <ClCompile Include="CheckOpenWnd.cpp" />
+    <ClCompile Include="ComandWnd.cpp" />
+    <ClCompile Include="CommonCondenseWnd.cpp" />
+    <ClCompile Include="CommonConfirmWnd.cpp" />
+    <ClCompile Include="CommonSelectWnd.cpp" />
+    <ClCompile Include="ComposeEquipWnd.cpp" />
+    <ClCompile Include="Defend12CtrlWnd.cpp" />
+    <ClCompile Include="Defend12GongWnd.cpp" />
+    <ClCompile Include="DelSkillWnd.cpp" />
+    <ClCompile Include="DivinityWingWnd.cpp" />
+    <ClCompile Include="ElixirWnd.cpp" />
+    <ClCompile Include="EnterShanWnd.cpp" />
+    <ClCompile Include="EquipChaifenWnd.cpp" />
+    <ClCompile Include="EquipLevelUpWnd.cpp" />
+    <ClCompile Include="EquipSoulWnd.cpp" />
+    <ClCompile Include="ExLeavWordsWnd.cpp" />
+    <ClCompile Include="ExternMessgeBoxWnd.cpp" />
+    <ClCompile Include="ExtractAndUpgradeYuanshiWnd.cpp" />
+    <ClCompile Include="FaBaoLevelUpWnd.cpp" />
+    <ClCompile Include="FaBaoShowWnd.cpp" />
+    <ClCompile Include="FairyGuide.cpp" />
+    <ClCompile Include="FireArtificeWnd.cpp" />
+    <ClCompile Include="FirmDetailInfoWnd.cpp" />
+    <ClCompile Include="FirmWnd.cpp" />
+    <ClCompile Include="FuShiSeriesWnd.cpp" />
+    <ClCompile Include="GameManager.cpp" />
+    <ClCompile Include="GameWnd.cpp" />
+    <ClCompile Include="GemCondenseWnd.cpp" />
+    <ClCompile Include="GMagicManager.cpp" />
+    <ClCompile Include="GoodSubmitWnd.cpp" />
+    <ClCompile Include="GreetingWnd.cpp" />
+    <ClCompile Include="GSceneManager.cpp" />
+    <ClCompile Include="GuildAddMember.cpp" />
+    <ClCompile Include="GuildAllyWnd.cpp" />
+    <ClCompile Include="GuildDelMember.cpp" />
+    <ClCompile Include="GuildEdit.cpp" />
+    <ClCompile Include="GuildFlagSelWnd.cpp" />
+    <ClCompile Include="HandyMapWnd.cpp" />
+    <ClCompile Include="HeartKnackWnd.cpp" />
+    <ClCompile Include="HuanHuaWnd.cpp" />
+    <ClCompile Include="HuFuFlushWnd.cpp" />
+    <ClCompile Include="InputMiBaoWnd.cpp" />
+    <ClCompile Include="InputUuidWnd.cpp" />
+    <ClCompile Include="InputYelloFlagWnd.cpp" />
+    <ClCompile Include="InstanceZonePopupWnd.cpp" />
+    <ClCompile Include="KfzArenaWnd.cpp" />
+    <ClCompile Include="KfzEditMemberWnd.cpp" />
+    <ClCompile Include="KfzFlow.cpp" />
+    <ClCompile Include="KfzIEWnd.cpp" />
+    <ClCompile Include="KfzMemberListWnd.cpp" />
+    <ClCompile Include="KfzMemberState.cpp" />
+    <ClCompile Include="KfzResultWnd.cpp" />
+    <ClCompile Include="LeaseBoothWnd.cpp" />
+    <ClCompile Include="LeaseOtherBoothWnd.cpp" />
+    <ClCompile Include="LeaveMessageWnd.cpp" />
+    <ClCompile Include="License2Wnd.cpp" />
+    <ClCompile Include="LicenseWnd.cpp" />
+    <ClCompile Include="LingWuSanWeiFire.cpp" />
+    <ClCompile Include="LoginCheckMaskWnd.cpp" />
+    <ClCompile Include="LookLeaveWordsWnd.cpp" />
+    <ClCompile Include="LuckQyzWnd.cpp" />
+    <ClCompile Include="LuxNpcWnd.cpp" />
+    <ClCompile Include="MazeWnd.cpp" />
+    <ClCompile Include="MemoireWnd.cpp" />
+    <ClCompile Include="MeritoriousWnd.cpp" />
+    <ClCompile Include="MinMapWnd.cpp" />
+    <ClCompile Include="NameWnd.cpp" />
+    <ClCompile Include="NoticeHelpWnd.cpp" />
+    <ClCompile Include="NoticeIEWnd.cpp" />
+    <ClCompile Include="NpcBoardWnd.cpp" />
+    <ClCompile Include="NpcBookWnd.cpp" />
+    <ClCompile Include="NpcBuyWnd.cpp" />
+    <ClCompile Include="NpcListWnd.cpp" />
+    <ClCompile Include="NpcQuickWnd.cpp" />
+    <ClCompile Include="NpcRecruit.cpp" />
+    <ClCompile Include="NpcSaleWnd.cpp" />
+    <ClCompile Include="NpcWnd.cpp" />
+    <ClCompile Include="OtherBoothWnd.cpp" />
+    <ClCompile Include="OtherPlayerEquip.cpp" />
+    <ClCompile Include="OtherPlayerFaBaoEquip.cpp" />
+    <ClCompile Include="PackageWnd.cpp" />
+    <ClCompile Include="PanelWnd.cpp" />
+    <ClCompile Include="PersonPanelWnd.cpp" />
+    <ClCompile Include="PersonsGuideWnd.cpp" />
+    <ClCompile Include="PetInfoWnd.cpp" />
+    <ClCompile Include="PetPackageWnd.cpp" />
+    <ClCompile Include="PetWnd.cpp" />
+    <ClCompile Include="PlayerPanelWnd.cpp" />
+    <ClCompile Include="PrayTreeWnd.cpp" />
+    <ClCompile Include="ProduceWnd.cpp" />
+    <ClCompile Include="QiShouWnd.cpp" />
+    <ClCompile Include="QuickBuyWnd.cpp" />
+    <ClCompile Include="QuickItemFashionalWnd.cpp" />
+    <ClCompile Include="RadioWnd.cpp" />
+    <ClCompile Include="RangeWnd.cpp" />
+    <ClCompile Include="ReadQuitWnd.cpp" />
+    <ClCompile Include="ReceiveMsgWnd.cpp" />
+    <ClCompile Include="RelationWnd.cpp" />
+    <ClCompile Include="ReplyWnd.cpp" />
+    <ClCompile Include="RTSInstanceWnd.cpp" />
+    <ClCompile Include="RunHorseLampWnd.cpp" />
+    <ClCompile Include="SanWeiFireWnd.cpp" />
+    <ClCompile Include="SealBookWnd.cpp" />
+    <ClCompile Include="SealWnd.cpp" />
+    <ClCompile Include="SetQuickItemWnd.cpp" />
+    <ClCompile Include="ShortCutKeyWnd.cpp" />
+    <ClCompile Include="ShortCutWnd.cpp" />
+    <ClCompile Include="SkillWnd.cpp" />
+    <ClCompile Include="SmallGemCon.cpp" />
+    <ClCompile Include="SplitStoneWnd.cpp" />
+    <ClCompile Include="SysConfigWnd.cpp" />
+    <ClCompile Include="TalkViewWnd.cpp" />
+    <ClCompile Include="TaskTreeDesWnd.cpp" />
+    <ClCompile Include="TaskWnd.cpp" />
+    <ClCompile Include="TaskWuSeDailyWnd.cpp" />
+    <ClCompile Include="TeamWnd.cpp" />
+    <ClCompile Include="TigerRuneWnd.cpp" />
+    <ClCompile Include="TradeWnd.cpp" />
+    <ClCompile Include="TreasureMapWnd.cpp" />
+    <ClCompile Include="UploadWnd.cpp" />
+    <ClCompile Include="UseObjectWnd.cpp" />
+    <ClCompile Include="UserInfoWnd.cpp" />
+    <ClCompile Include="VipCardWnd.cpp" />
+    <ClCompile Include="VipStoreWnd.cpp" />
+    <ClCompile Include="VoiceAddWnd.cpp" />
+    <ClCompile Include="VoiceCfgWnd.cpp" />
+    <ClCompile Include="VoiceChatWnd.cpp" />
+    <ClCompile Include="VoicePasswordWnd.cpp" />
+    <ClCompile Include="VoiceSearchWnd.cpp" />
+    <ClCompile Include="VoiceWnd.cpp" />
+    <ClCompile Include="WenPeiWnd.cpp" />
+    <ClCompile Include="WoolStorBuyCount.cpp" />
+    <ClCompile Include="WoolStorCleanWnd.cpp" />
+    <ClCompile Include="WoolStorRecvOKWnd.cpp" />
+    <ClCompile Include="WoolStorSendOKWnd.cpp" />
+    <ClCompile Include="WoolStorSendWnd.cpp" />
+    <ClCompile Include="WooolStoreWnd.cpp" />
+    <ClCompile Include="WooolStoryWnd.cpp" />
+    <ClCompile Include="WuXingPrizeWnd.cpp" />
+    <ClCompile Include="YiHuoZhanMsgWnd.cpp" />
+    <ClCompile Include="YuanBaoWnd.cpp" />
+    <ClCompile Include="YuShouLevelUpWnd.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="ActivityLogWnd.h" />
+    <ClInclude Include="AdventureWnd.h" />
+    <ClInclude Include="AssConfigWnd.h" />
+    <ClInclude Include="AutoLeaveWordsWnd.h" />
+    <ClInclude Include="AvatarWnd.h" />
+    <ClInclude Include="BaoJianWnd.h" />
+    <ClInclude Include="BindPTMsgWnd.h" />
+    <ClInclude Include="BindPTWnd.h" />
+    <ClInclude Include="BlessCompoundWnd.h" />
+    <ClInclude Include="BlessZhongZhouWnd.h" />
+    <ClInclude Include="BoothGuideWnd.h" />
+    <ClInclude Include="BoothNamePrice.h" />
+    <ClInclude Include="BoothSelectWnd.h" />
+    <ClInclude Include="BoothWnd.h" />
+    <ClInclude Include="BoxWnd.h" />
+    <ClInclude Include="CaiHongHelpWnd.h" />
+    <ClInclude Include="ChatPanelWnd.h" />
+    <ClInclude Include="CheckMessageBox.h" />
+    <ClInclude Include="CheckOpenWnd.h" />
+    <ClInclude Include="ComandWnd.h" />
+    <ClInclude Include="CommonCondenseWnd.h" />
+    <ClInclude Include="CommonConfirmWnd.h" />
+    <ClInclude Include="CommonSelectWnd.h" />
+    <ClInclude Include="ComposeEquipWnd.h" />
+    <ClInclude Include="Defend12CtrlWnd.h" />
+    <ClInclude Include="Defend12GongWnd.h" />
+    <ClInclude Include="DelSkillWnd.h" />
+    <ClInclude Include="DivinityWingWnd.h" />
+    <ClInclude Include="ElixirWnd.h" />
+    <ClInclude Include="EnterShanWnd.h" />
+    <ClInclude Include="EquipChaifenWnd.h" />
+    <ClInclude Include="EquipLevelUpWnd.h" />
+    <ClInclude Include="EquipSoulWnd.h" />
+    <ClInclude Include="ExLeavWordsWnd.h" />
+    <ClInclude Include="ExternMessgeBoxWnd.h" />
+    <ClInclude Include="ExtractAndUpgradeYuanshiWnd.h" />
+    <ClInclude Include="FaBaoLevelUpWnd.h" />
+    <ClInclude Include="FaBaoShowWnd.h" />
+    <ClInclude Include="FairyGuide.h" />
+    <ClInclude Include="FireArtificeWnd.h" />
+    <ClInclude Include="FirmDetailInfoWnd.h" />
+    <ClInclude Include="FirmWnd.h" />
+    <ClInclude Include="FuShiSeriesWnd.h" />
+    <ClInclude Include="GameManager.h" />
+    <ClInclude Include="GameWnd.h" />
+    <ClInclude Include="GemCondenseWnd.h" />
+    <ClInclude Include="GMagicManager.h" />
+    <ClInclude Include="GoodSubmitWnd.h" />
+    <ClInclude Include="GreetingWnd.h" />
+    <ClInclude Include="GSceneDefine.h" />
+    <ClInclude Include="GSceneManager.h" />
+    <ClInclude Include="GuildAddMember.h" />
+    <ClInclude Include="GuildAllyWnd.h" />
+    <ClInclude Include="GuildDelMember.h" />
+    <ClInclude Include="GuildEdit.h" />
+    <ClInclude Include="GuildFlagSelWnd.h" />
+    <ClInclude Include="HandyMapWnd.h" />
+    <ClInclude Include="HeartKnackWnd.h" />
+    <ClInclude Include="HuanHuaWnd.h" />
+    <ClInclude Include="HuFuFlushWnd.h" />
+    <ClInclude Include="InputMiBaoWnd.h" />
+    <ClInclude Include="InputUuidWnd.h" />
+    <ClInclude Include="InputYelloFlagWnd.h" />
+    <ClInclude Include="InstanceZonePopupWnd.h" />
+    <ClInclude Include="KfzArenaWnd.h" />
+    <ClInclude Include="KfzEditMemberWnd.h" />
+    <ClInclude Include="KfzFlow.h" />
+    <ClInclude Include="KfzIEWnd.h" />
+    <ClInclude Include="KfzMemberListWnd.h" />
+    <ClInclude Include="KfzMemberState.h" />
+    <ClInclude Include="KfzResultWnd.h" />
+    <ClInclude Include="LeaseBoothWnd.h" />
+    <ClInclude Include="LeaseOtherBoothWnd.h" />
+    <ClInclude Include="LeaveMessageWnd.h" />
+    <ClInclude Include="License2Wnd.h" />
+    <ClInclude Include="LicenseWnd.h" />
+    <ClInclude Include="LingWuSanWeiFire.h" />
+    <ClInclude Include="LoginCheckMaskWnd.h" />
+    <ClInclude Include="LookLeaveWordsWnd.h" />
+    <ClInclude Include="LuckQyzWnd.h" />
+    <ClInclude Include="LuxNpcWnd.h" />
+    <ClInclude Include="MazeWnd.h" />
+    <ClInclude Include="MemoireWnd.h" />
+    <ClInclude Include="MeritoriousWnd.h" />
+    <ClInclude Include="MinMapWnd.h" />
+    <ClInclude Include="NameWnd.h" />
+    <ClInclude Include="NoticeHelpWnd.h" />
+    <ClInclude Include="NoticeIEWnd.h" />
+    <ClInclude Include="NpcBoardWnd.h" />
+    <ClInclude Include="NpcBookWnd.h" />
+    <ClInclude Include="NpcBuyWnd.h" />
+    <ClInclude Include="NpcListWnd.h" />
+    <ClInclude Include="NpcQuickWnd.h" />
+    <ClInclude Include="NpcRecruit.h" />
+    <ClInclude Include="NpcSaleWnd.h" />
+    <ClInclude Include="NpcWnd.h" />
+    <ClInclude Include="OtherBoothWnd.h" />
+    <ClInclude Include="OtherPlayerEquip.h" />
+    <ClInclude Include="OtherPlayerFaBaoEquip.h" />
+    <ClInclude Include="PackageWnd.h" />
+    <ClInclude Include="PanelWnd.h" />
+    <ClInclude Include="PersonPanelWnd.h" />
+    <ClInclude Include="PersonsGuideWnd.h" />
+    <ClInclude Include="PetInfoWnd.h" />
+    <ClInclude Include="PetPackageWnd.h" />
+    <ClInclude Include="PetWnd.h" />
+    <ClInclude Include="PlayerPanelWnd.h" />
+    <ClInclude Include="PrayTreeWnd.h" />
+    <ClInclude Include="ProduceWnd.h" />
+    <ClInclude Include="QiShouWnd.h" />
+    <ClInclude Include="QuickBuyWnd.h" />
+    <ClInclude Include="QuickItemFashionalWnd.h" />
+    <ClInclude Include="RadioWnd.h" />
+    <ClInclude Include="RangeWnd.h" />
+    <ClInclude Include="ReadQuitWnd.h" />
+    <ClInclude Include="ReceiveMsgWnd.h" />
+    <ClInclude Include="RelationWnd.h" />
+    <ClInclude Include="ReplyWnd.h" />
+    <ClInclude Include="RTSInstanceWnd.h" />
+    <ClInclude Include="RunHorseLampWnd.h" />
+    <ClInclude Include="SanWeiFireWnd.h" />
+    <ClInclude Include="SealBookWnd.h" />
+    <ClInclude Include="SealWnd.h" />
+    <ClInclude Include="SetQuickItemWnd.h" />
+    <ClInclude Include="ShortCutKeyWnd.h" />
+    <ClInclude Include="ShortCutWnd.h" />
+    <ClInclude Include="SkillWnd.h" />
+    <ClInclude Include="SmallGemCon.h" />
+    <ClInclude Include="SplitStoneWnd.h" />
+    <ClInclude Include="SysConfigWnd.h" />
+    <ClInclude Include="TalkViewWnd.h" />
+    <ClInclude Include="TaskTreeDesWnd.h" />
+    <ClInclude Include="TaskWnd.h" />
+    <ClInclude Include="TaskWuSeDailyWnd.h" />
+    <ClInclude Include="TeamWnd.h" />
+    <ClInclude Include="TigerRuneWnd.h" />
+    <ClInclude Include="TradeWnd.h" />
+    <ClInclude Include="TreasureMapWnd.h" />
+    <ClInclude Include="UploadWnd.h" />
+    <ClInclude Include="UseObjectWnd.h" />
+    <ClInclude Include="UserInfoWnd.h" />
+    <ClInclude Include="VipCardWnd.h" />
+    <ClInclude Include="VipStoreWnd.h" />
+    <ClInclude Include="VoiceWnd.h" />
+    <ClInclude Include="WenPeiWnd.h" />
+    <ClInclude Include="WoolStorBuyCount.h" />
+    <ClInclude Include="WoolStorCleanWnd.h" />
+    <ClInclude Include="WoolStorRecvOKWnd.h" />
+    <ClInclude Include="WoolStorSendOKWnd.h" />
+    <ClInclude Include="WoolStorSendWnd.h" />
+    <ClInclude Include="WooolStoreWnd.h" />
+    <ClInclude Include="WooolStoryWnd.h" />
+    <ClInclude Include="WuXingPrizeWnd.h" />
+    <ClInclude Include="YiHuoZhanMsgWnd.h" />
+    <ClInclude Include="YuanBaoWnd.h" />
+    <ClInclude Include="YuShouLevelUpWnd.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ReadMe.txt" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

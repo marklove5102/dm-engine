@@ -1,0 +1,203 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="源文件">
+      <UniqueIdentifier>{b47497e2-6a6b-421f-8627-887d4fb6bbc0}</UniqueIdentifier>
+      <Extensions>cpp;c;cxx;def;odl;idl;hpj;bat;asm</Extensions>
+    </Filter>
+    <Filter Include="头文件">
+      <UniqueIdentifier>{b94dc7c7-73b3-4783-a9fe-c5913ec0d5ea}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="ArrowTip.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CommonViewer.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Control.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="ControlContainer.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CtrlButton.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CtrlEdit.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CtrlGrid.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CtrlLabel.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CtrlMainWin.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CtrlMenuButton.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CtrlMenuWnd.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CtrlMsgBox.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CtrlMultiEdit.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CtrlRadio.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CtrlScroll.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CtrlTag.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CtrlTip.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CtrlTree.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CtrlTreeView.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CtrlWindow.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CtrlWindowS.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CtrlWindowX.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="GlyphEdit.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="GoodGrid.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="MarkViewer.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="ParserTip.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="TalkViewer.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="TaskTracker.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="UiManager.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="XmlBase.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="XmlControl.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="XmlUser.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="ArrowTip.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CommonViewer.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Control.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="ControlDefine.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CtrlButton.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CtrlEdit.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CtrlGrid.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CtrlLabel.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CtrlMenuButton.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CtrlMenuWnd.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CtrlMsgBox.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CtrlMultiEdit.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CtrlRadio.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CtrlScroll.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CtrlTag.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CtrlTip.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CtrlTree.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CtrlTreeView.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CtrlWindowS.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CtrlWindowX.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="GlyphEdit.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="GoodGrid.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="MarkViewer.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="ParserTip.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="TalkViewer.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="TaskTracker.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="UiManager.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="XmlBase.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="XmlControl.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="XmlUser.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

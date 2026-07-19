@@ -1,0 +1,18 @@
+
+class CCtrlWindowX : public CCtrlWindow
+{
+public:
+	virtual int  PointInPage(int iX, int iY);
+	virtual void SwitchToPage(int iPage);
+	int  GetSCurPage();
+	void SetPageRect(int iPage,int left,int top,int right,int bottom);
+	
+	CCtrlScroll* FindScrollByName(const char* name); 
+	CCtrlRadio*  FindRadioByName(const char* name);
+	CCtrlButton* FindButtonByName(const char* name);
+	CCtrlEdit*   FindEditByName(const char* name);
+	CCtrlTip*    FindTipByName(const char* name);
+};
+
+$renaming CCtrlWindowX @ WindowX
+
