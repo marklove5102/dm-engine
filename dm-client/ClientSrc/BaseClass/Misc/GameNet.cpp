@@ -165,7 +165,7 @@ void CGameNet::OnSocketMessageRecieve(char* pszMsg)
 	static char szPacket[PACKAGE_LENGTH] = { 0 };
 
 	fnDecodeMessage(&tdm, pszMsg);
-
+	output_debug("协议 %d, Recog=%d, Param=%d, Tag=%d, Series=%d, IsGS=%d\n", tdm.wIdent, tdm.nRecog, tdm.wParam, tdm.wTag, tdm.wSeries, isOnGameProc);
 	if(tdm.wIdent == 50 || tdm.wIdent == 51)		//临时解决办法
 	{
 		isOnGameProc = true;
@@ -223,6 +223,12 @@ void CGameNet::OnSocketMessageRecieve(char* pszMsg)
 		}
 		g_pGameControl->GCL_AddMsg(szDecMsg, nDecLen);   
 	}
+}
+
+// 小退时重置游戏流程标志，使后续角色服消息走登录流程分支
+void CGameNet::ResetGameProcFlag()
+{
+	isOnGameProc = false;
 }
 
 //封包处理

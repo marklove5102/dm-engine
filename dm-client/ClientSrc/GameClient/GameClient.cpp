@@ -38,6 +38,9 @@
 #include "GameData/OtherData.h"
 #include <shlwapi.h>
 
+#ifdef _DEBUG
+#include <crtdbg.h>
+#endif
 
 
 #pragma comment(lib,"d3d9.lib")
@@ -1225,6 +1228,13 @@ void AnalyzeCommandLine()
 // 主函数
 int WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,LPTSTR lpCmdLine,int nCmdShow)
 {
+	// Debug 模式下启用 CRT 内存泄漏检测
+	// 进程退出时自动在"输出"窗口打印泄漏块信息
+#ifdef _DEBUG
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+	// _CrtSetBreakAlloc(xxx);  // 取消注释并填入块号以定位特定泄漏
+#endif
+
 	GetGameDataDir();//初始包工作路径
 
 	g_hCgpfsDLL = LoadLibrary("cgpfs_l.dll"); 

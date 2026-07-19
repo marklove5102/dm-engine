@@ -502,6 +502,9 @@ public:
 	void SetGS(bool isGS){m_bIsGS = isGS;}
 	bool IsGS(){return m_bIsGS;}
 
+	// 小退时重置游戏流程标志，使消息走登录流程分支
+	void ResetGameProcFlag();
+
 	struct STR2MSG_ENTRY
 	{
 		char* str;

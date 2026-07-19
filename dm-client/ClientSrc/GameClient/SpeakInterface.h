@@ -1,8 +1,6 @@
 #pragma once
-
-#ifndef _CHAT
+//ÊÇ·ñÆôÓÃÓïÑÔÁÄÌì
 #define _CHAT
-#endif
 
 #ifdef _CHAT
 

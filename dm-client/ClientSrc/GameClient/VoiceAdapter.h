@@ -1,9 +1,5 @@
 #pragma once
 
-#ifndef _CHAT
-#define _CHAT
-#endif
-
 #include "VoiceProxy.h"
 #include "Global/StdHeaders.h"
 

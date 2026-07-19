@@ -1,0 +1,14 @@
+#include <windows.h>
+#include "resource.h"
+
+IDR_MAINMENU MENU
+BEGIN
+    POPUP "&File"
+    BEGIN
+        MENUITEM "&Open...\tCtrl+O",    IDM_OPEN
+        MENUITEM "&Save\tCtrl+S",       IDM_SAVE
+        MENUITEM "Save &As...",         IDM_SAVEAS
+        MENUITEM SEPARATOR
+        MENUITEM "E&xit",               IDM_EXIT
+    END
+END

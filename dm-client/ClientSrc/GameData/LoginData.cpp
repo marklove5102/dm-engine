@@ -8,6 +8,7 @@ CLoginData::CLoginData()
 	m_VGroupList.clear();
 	//m_bPoptang = true;
 	m_iServerPort=0;
+	m_iRoleGatePort=0;
 	m_bTuiguang = false;
 	m_iAreaNo = 0;
 	m_iInnerAreaNo = 0;
@@ -66,6 +67,13 @@ void CLoginData::SetLoginServer(const char* ip,int port)
 {
 	m_strLoginServerIP.assign(ip);
 	m_iLoginServerPort = port;
+}
+
+//保存角色网关地址，小退时用于重连角色服
+void CLoginData::SetRoleGate(const char* ip,int port)
+{
+	m_strRoleGateIP.assign(ip);
+	m_iRoleGatePort = port;
 }
 
 //void CLoginData::SetAccount(const char* str,bool pt)

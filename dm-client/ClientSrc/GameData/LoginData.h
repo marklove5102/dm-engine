@@ -67,6 +67,10 @@ public:
 	int     GetLoginServerPort()  { return m_iLoginServerPort; }
 	const char* GetKfzLoginString()  { return m_strKfzLoginString.c_str(); }
 
+	void    SetRoleGate(const char* ip,int port);		//保存角色网关地址，小退时用于重连角色服
+	const char* GetRoleGateIP()   { return m_strRoleGateIP.c_str(); }
+	int     GetRoleGatePort()     { return m_iRoleGatePort; }
+
 	const char* GetCurChar();
 	void    SetSelectChar(int i);  //设置选中的角色
 
@@ -183,6 +187,8 @@ protected:
 
 	string		m_strLoginServerIP;
 	int         m_iLoginServerPort;
+	string		m_strRoleGateIP;		//角色网关IP，小退时重连角色服用
+	int         m_iRoleGatePort;		//角色网关端口
 	string		m_strKfzLoginString;//  ptAccount/AreaNo/AreaName/LoginGateIp/LoginGatePort/GroupName/GroupNickName
 	bool        m_bHaveAutoLoginIn;//是否已经登录gs,收到角色列表后如果此时开门动画还没有播放完,则先设置这个标记,等播完了再登录
 

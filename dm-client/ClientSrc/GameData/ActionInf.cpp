@@ -1482,6 +1482,30 @@ void CActionInf::LoadDATFile()
 			{
 				SDrawOrder_Dir_Frame* pData = new SDrawOrder_Dir_Frame[8*iFrame];
 				fread(pData,sizeof(SDrawOrder_Dir_Frame),8*iFrame,fp);
+
+				// 规范化 byOrder: 将 <24 的有效绘制层提到前面, 追加 24 终止标记, 其余填 255
+				for (int j = 0; j < 8 * iFrame; j++)
+				{
+					BYTE byTemp[DP_DrawPartMaxNum] = {};
+					int iPos = 0;
+
+					// 第一遍: 收集所有有效绘制层 (< 24)
+					for (int k = 0; k < DP_DrawPartMaxNum; k++)
+					{
+						if (pData[j].byOrder[k] < DP_DrawPartEffectNum)
+							byTemp[iPos++] = pData[j].byOrder[k];
+					}
+
+					// 追加终止标记 24
+					byTemp[iPos++] = DP_DrawPartEffectNum;
+
+					// 剩余填 255
+					while (iPos < DP_DrawPartMaxNum)
+						byTemp[iPos++] = 255;
+
+					memcpy(pData[j].byOrder, byTemp, DP_DrawPartMaxNum);
+				}
+
 				m_MDrawOrder[iAction] = SDrawOrder(iFrame,pData);				
 			}
 		}

@@ -1508,6 +1508,15 @@ void CGameControl::SEND_Out_Game(bool bOpenSelCharWnd)
 
 		g_pGameData->Clear();
 
+		// 小退时清除自动登录/体验服/浩方竞技状态，防止MSG_Login_Ack误走自动登录分支直接进入游戏
+		g_Login.SetAutoLoginInType(0);
+		g_Login.SetLoginInExpType(0);
+		g_Login.SetInLoginInExp(false);
+		g_Login.SetInHaoFangJingJi(false);
+
+		// 小退时重置游戏流程标志，使角色服消息走登录流程分支而非游戏流程分支
+		g_pNet->ResetGameProcFlag();
+
 		if(g_pSDOAInterface)
 		{
 			//g_pSDOAInterface->Logout();
@@ -1549,15 +1558,24 @@ void CGameControl::SEND_Out_Game(bool bOpenSelCharWnd)
     //SET_COMMAND(CS_QUIT_GAME,12);
     //SEND_GAME_SERVER();
 
-	SEND_ReselRole_Req(g_Login.GetLoginID(),g_OtherData.GetCharName()); 
+	// 断开游戏服，连接角色服
+	g_pNet->Close(SERVER_GAME);
 	Sleep(1000);
+	g_pNet->SetServer(SERVER_GAME, g_Login.GetRoleGateIP(), g_Login.GetRoleGatePort());
+	g_pNet->Connect(SERVER_GAME);
+	Sleep(100);
 
 	GCL_ClearMsgBuf(); //清掉之前的全部消息
-	//if(g_Login.GetLoginGateType() != 1)
-	//	g_pNet->Reset();
 
-    if(bOpenSelCharWnd)
-        g_pControl->Msg(MSG_CTRL_SELECTCHARWND,OPER_CREATE);
+	if(bOpenSelCharWnd)
+	{
+		g_pControl->Msg(MSG_CTRL_CREATECHARWND,OPER_CLOSE);   
+		g_pControl->Msg(MSG_CTRL_SELECTCHARWND,OPER_CREATE);
+	}
+
+	char szPacket[32];
+	wsprintf(szPacket, "%s/%d", g_Login.GetLoginID(), g_Login.GetSessionID());
+	g_pNet->SendBuf(SERVER_GAME, (char*)&szPacket, 0, 100, false);		//CM_QUERYCHR
 }
 
 
@@ -1776,6 +1794,7 @@ void CGameControl::MSG_SelGroup_Ack(const char * msg, int iLen)
 
 		//断开当前的账号网关
 		g_Login.SetServer(roleGate.at(0).c_str(),StringUtil::toInt(roleGate.at(1)));
+		g_Login.SetRoleGate(roleGate.at(0).c_str(),StringUtil::toInt(roleGate.at(1)));	//保存角色服地址，小退时用
 		g_pNet->Close(SERVER_GAME);
 		Sleep(1000);
 		//连接到角色网关
@@ -1804,6 +1823,7 @@ void CGameControl::MSG_SelGroup_Ack(const char * msg, int iLen)
         std::string ggSvrIP = ::inet_ntoa(saddr);
         
 		g_Login.SetServer(ggSvrIP.c_str(),ggAddr.wPort);
+		g_Login.SetRoleGate(ggSvrIP.c_str(),ggAddr.wPort);	//保存角色服地址，小退时用
 
 		g_pNet->Close(SERVER_GAME);
 		Sleep(1000);

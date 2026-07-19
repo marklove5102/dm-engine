@@ -12,7 +12,6 @@
 
 #include <stdio.h>
 #include <math.h>
-#include <dxerr9.h>
 #include <new>
 #include "tchar.h"
 #include <ShlObj.h>
@@ -22,10 +21,6 @@
 #ifdef _DEBUG
 #include "new.h"
 #define new DEBUG_NEW
-#endif
-
-#ifdef _DEBUG
-#include "include/vld.h"
 #endif
 
 #include "BaseClass/Misc/Input.h"
