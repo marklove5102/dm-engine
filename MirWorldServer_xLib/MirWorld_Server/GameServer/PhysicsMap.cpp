@@ -19,8 +19,8 @@ CPhysicsMap::~CPhysicsMap(VOID)
 BOOL CPhysicsMap::LoadMap(const char* pszFilename)
 {
 	_splitpath(pszFilename, nullptr, nullptr, m_szMapName.data(), nullptr);
-	FILE* fp = fopen(pszFilename, "rb");
-	if (fp == nullptr) return FALSE;
+	FileGuard fp(fopen(pszFilename, "rb"));
+	if (!fp) return FALSE;
 	DWORD dwTemp;
 	fread(&dwTemp, 4, 1, fp); // 头部数据大小
 	fread(&m_dwVer, 4, 1, fp); // 地图类型
@@ -258,7 +258,7 @@ BOOL CPhysicsMap::LoadMap(const char* pszFilename)
 				break;
 		}
 	}
-	fclose(fp);
+	// fclose 由 FileGuard 析构自动完成
 	q_strupper(m_szMapName.data());
 	return TRUE;
 }
@@ -266,8 +266,8 @@ BOOL CPhysicsMap::LoadMap(const char* pszFilename)
 BOOL CPhysicsMap::LoadCache(const char* pszCacheFilename)
 {
 	_splitpath(pszCacheFilename, nullptr, nullptr, m_szMapName.data(), nullptr);
-	FILE* fp = fopen(pszCacheFilename, "rb");
-	if (fp == nullptr)return FALSE;
+	FileGuard fp(fopen(pszCacheFilename, "rb"));
+	if (!fp)return FALSE;
 	DWORD dwTemp = 0;
 	fread(&dwTemp, 4, 1, fp);
 	if (dwTemp != *(DWORD*)"2026")return FALSE;
@@ -288,8 +288,8 @@ BOOL CPhysicsMap::SaveCache(const char* pszPath)
 {
 	char szFilename[256];
 	_makepath(szFilename, nullptr, pszPath, m_szMapName.data(), ".map");
-	FILE* fp = fopen(szFilename, "wb");
-	if (fp == nullptr)return FALSE;
+	FileGuard fp(fopen(szFilename, "wb"));
+	if (!fp)return FALSE;
 	fwrite((VOID*)"2026", 4, 1, fp);
 	fwrite(&m_iWidth, sizeof(int), 1, fp);
 	fwrite(&m_iHeight, sizeof(int), 1, fp);
@@ -297,7 +297,7 @@ BOOL CPhysicsMap::SaveCache(const char* pszPath)
 	int f = (m_iWidth * m_iHeight + 31) / 32;
 	if (static_cast<int>(m_iMaxBlockElements) > f)f = static_cast<int>(m_iMaxBlockElements);
 	fwrite((VOID*)m_pBlockLayer.get(), sizeof(DWORD), f, fp);
-	fclose(fp);
+	// fclose 由 FileGuard 析构自动完成
 	return TRUE;
 }
 

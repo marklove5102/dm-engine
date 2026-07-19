@@ -1,7 +1,6 @@
 #pragma once
 #include "aiobjectex.h"
 #include "itembox.h"
-#include "MonsterComponentManager.h"
 #include <array>
 
 class CHumanPlayer;
@@ -77,8 +76,8 @@ public:
 		BYTE wd1 = m_pDesc->base.raceimg;
 		return static_cast<DWORD>(MAKELONG(MAKEWORD(wd1, 0), wd));
 	}
-	// 攻击目标
-	BOOL AttackTarget(e_direction dir = ED_MAX);
+	// 攻击目标 - bFromVolley是否齐射
+	BOOL AttackTarget(e_direction dir = ED_MAX, BOOL bFromVolley = FALSE) override;
 	// 是否能做动作
 	BOOL CanDoAction(actiontype action);
 	// 受伤事件处理
@@ -194,16 +193,11 @@ public:
 	/// y: 目标Y坐标
 	VOID SetPickupItem(WORD x, WORD y)
 	{
-		auto* pet = MonsterComponentManager::GetInstance()->GetPet(this);
-		if (pet) pet->bGotoOwner = TRUE;
+		PetgotoPOwner = TRUE;
 		m_pCurFocusItem = SearchFitableItem(x, y);
 	}
 	// 检查是否已设置宠物拾取物品
-	BOOL IsGotoOwner()
-	{
-		auto* pet = MonsterComponentManager::GetInstance()->GetPet(this);
-		return pet ? pet->bGotoOwner : FALSE;
-	}
+	BOOL IsGotoOwner() { return PetgotoPOwner; }
 	// 获取怪物生成器信息
 	MONSTERGEN* GetGen() { return m_pGen; }
 	// 设置怪物生成器信息
@@ -245,47 +239,22 @@ public:
 	// 设置宠物叛变信息
 	VOID SetBetrayInfo(DWORD dwBetray)
 	{
-		MonsterComponentManager::GetInstance()->EnsurePetComponent(this);
-		auto* pet = MonsterComponentManager::GetInstance()->GetPet(this);
-		if (pet)
-		{
-			pet->dwBetray = dwBetray;
-			pet->bSetOwner = TRUE;
-		}
-		MonsterComponentManager::GetInstance()->ResetMonsterTimer(GetECSEntity(), TimerType::TMR_BETRAY);
+		m_dwBetray = dwBetray;
+		m_betrayTimer.Savetime();
+		m_bSetOwner = TRUE;
 	};
 	// 是否是特殊刷怪
-	BOOL IsSpecialGen() const
-	{
-		auto* st = MonsterComponentManager::GetInstance()->GetMonsterState(const_cast<CMonsterEx*>(this));
-		return st ? st->boSpecialGen : FALSE;
-	}
+	BOOL IsSpecialGen() const { return m_boSpecialGen; }
 	// 增加复活次数
-	VOID AddRevivalCount(BYTE btCount)
-	{
-		auto* st = MonsterComponentManager::GetInstance()->GetMonsterState(this);
-		if (st) st->btRevivalCount += btCount;
-	}
+	VOID AddRevivalCount(BYTE btCount) { m_btRevivalCount += btCount; }
 	// 获取复活次数
-	BYTE GetRevivalCount() const
-	{
-		auto* st = MonsterComponentManager::GetInstance()->GetMonsterState(const_cast<CMonsterEx*>(this));
-		return st ? st->btRevivalCount : 0;
-	}
+	BYTE GetRevivalCount() const { return m_btRevivalCount; }
 	// 死亡是否超过多少时间
-	BOOL BodyIsOutTime(DWORD dwTimeOut)
-	{
-		return MonsterComponentManager::GetInstance()->CheckMonsterTimer(GetECSEntity(), TimerType::TMR_BODY, dwTimeOut);
-	}
+	BOOL BodyIsOutTime(DWORD dwTimeOut) { return m_bodytimer.IsTimeOut(dwTimeOut); }
 	// 自定义时间是否超过多少时间
 	BOOL CustomIsOutTime(DWORD dwTimeOut) { return m_CustomTimer.IsTimeOut(dwTimeOut); }
 	// 自定义时间保存更新
 	VOID CustomSaveTime() { m_CustomTimer.Savetime(); }
-
-	// ===== ECS 组件访问辅助方法 =====
-	MonsterStateComponent* GetMonsterState() { return MonsterComponentManager::GetInstance()->GetMonsterState(this); }
-	PetComponent* GetPetComponent() { return MonsterComponentManager::GetInstance()->GetPet(this); }
-
 protected:
 	// AI行走
 	BOOL AiWalk(int dir, BOOL bCheckRun = FALSE);
@@ -298,17 +267,33 @@ protected:
 	// 检查目标是否可选
 	BOOL IsTargetSelectable(CAliveObject* pTarget);
 protected:
-	// ===== C类保留成员（AI核心/继承基石/静态配置） =====
+	BOOL m_bFirstEnterMap; // 是否首次进入地图
 	StringCacheNode* m_pScriptPage; // 脚本页面
 	BOOL m_bGotoPoint; // 是否需要移动到目标点
 	WORD m_wGotoX; // 目标点X坐标
 	WORD m_wGotoY; // 目标点Y坐标
 	xListHost<CMonsterEx>::xListNode m_xUpdateNode; // 更新链表节点
-	CMapObject* m_pCurFocusItem; // 焦点物品(TODO Phase2:改为ID引用)
-	CServerTimer m_IdleTimer; // 空闲计时器(保留:每帧重置+peek模式不适合CheckAliveTimer)
+	CMapObject* m_pCurFocusItem; // 焦点物品
+	DWORD m_dwKillCount; // 击杀计数
+	DWORD m_dwBetray; // 宠物叛变时间
+	BOOL m_bSetOwner; // 是否设置主人
+	WORD m_wCurHp; // 当前生命值
+	WORD m_wCurMp; // 当前魔法值
+	DWORD m_dwExp; // 经验值
+	CServerTimer m_bodytimer; // 身体计时器
+	CServerTimer m_IdleTimer; // 空闲计时器
+	CServerTimer m_betrayTimer; // 宠物叛变计时器
+	BOOL PetgotoPOwner = FALSE; // 是否已设置宠物拾取
 	CAttackObject m_xAttackObj; // 攻击对象
 	MONSTERGEN* m_pGen; // 怪物生成器信息
-	MonsterClass* m_pDesc; // 怪物类描述（静态配置，多怪物共享）
+	MonsterClass* m_pDesc; // 怪物类描述
 	BYTE m_btType; // 怪物类型
+	BOOL m_fCuted; // 是否已被挖肉
+	BOOL m_boSpecialGen; // 是否是特殊刷怪
 	static xObjectPool<StringCacheNode> m_xStringCachePool; // 字符串缓存池
+private:
+	BOOL m_bNoAiDelayAttack = TRUE; //是否无延时攻击
+	BOOL m_bIsShow = FALSE; // 是否出现动画
+	std::array<char, 20> m_szOriginalName; // 原始显示名字
+	BYTE m_btRevivalCount; // 被复活的次数
 };

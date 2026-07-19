@@ -9,12 +9,12 @@ public:
 protected:
 	BOOL Init(int x, int y);
 	virtual BOOL AiWalk(int dir, BOOL bCheckRun = FALSE) { return FALSE; }
+	virtual BOOL AttackTarget(e_direction dir = ED_MAX, BOOL bFromVolley = FALSE);
 	CAliveObject* SearchTarget(BYTE btTargetSelect, BYTE btViewDistance);
 	CAliveObject* SearchTargetDistance(BYTE btViewDistance);
 	CAliveObject* SearchTargetProp(BYTE btViewDistance, int prop);
 	CAliveObject* SearchTargetForOwner(BYTE btViewDistance);
 	CAliveObject* SearchFriendDistance(BYTE nDistance);
-	virtual BOOL AttackTarget(e_direction dir = ED_MAX);
 	VOID Ai_KeepLine(BYTE nAttackDistance, DWORD dwFlag = LINEATTACK_XSTYLE | LINEATTACK_CROSS);
 	VOID Ai_Escape(BYTE nEscapeDistance);
 	VOID Ai_Follow(BYTE nAttackDistance);
@@ -103,6 +103,9 @@ protected:
 	CMapObject* SearchGodItem();
 	virtual BOOL IsGotoOwner() { return TRUE; }//是否回到主人身边
 	virtual BOOL IsTargetSelectable(CAliveObject* pTarget) { return TRUE; }
+protected:
+	DWORD m_dwLastAttackTick; // 上次攻击tick (强制攻击间隔)
+	DWORD m_dwNextVolleyTick; // 下次可触发齐射的tick (分布式: 任一怪触发后全队上CD)
 private:
 	BOOL m_bLastActionWasAttack;//边走边打,移动跟攻击开关
 	WORD m_wHomeX; // 出生X坐标

@@ -36,8 +36,8 @@ class CScriptPageView : public CScriptView
 {
 public:
 	CScriptPageView(CScriptShell* pShell);
-	BOOL AppendWords(const char* pszWords);
-	VOID SendPageToTarget(CScriptTarget* pTarget, DWORD dwParam = 0);
-	VOID SendClosePageToTarget(CScriptTarget* pTarget);
-	VOID ChangeShell(CScriptShell* pShell);
+	BOOL AppendWords(const char* pszWords) override;
+	VOID SendPageToTarget(CScriptTarget* pTarget, DWORD dwParam = 0) override;
+	VOID SendClosePageToTarget(CScriptTarget* pTarget) override;
+	VOID ChangeShell(CScriptShell* pShell) override;
 };

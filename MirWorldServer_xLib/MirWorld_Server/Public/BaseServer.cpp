@@ -70,13 +70,35 @@ BOOL CBaseServer::Start(CSettingFile& sf) //读取Config.ini
 	bRet = m_xIocpServer.start();
 	if (bRet)
 	{
+		if (!InitServer(sf))
+			bRet = FALSE;
+		// 先建立后端连接（SC/DB），再开始接受客户端
+		if (bRet && m_Ident.bType != ST_SERVERCENTER)
+		{
+			if (!ConnectSCServer())
+				m_pIoConsole->OutPut(ERROR_RED, "%s|连接服务器中心(%s:%u)失败, 将在后台重试...\n",
+					GetServerTypeNameByType((servertype)m_Ident.bType), m_SCAddr.addr.data(), m_SCAddr.nPort);
+			else
+			{
+				m_SCClientObj.setId(ID_SERVERCENTERCONNECTION);
+				m_SCClientObj.RegisterServer(m_ServerAddr, m_Ident, m_szNickName.data());
+				OnSCServerReady();
+				m_pIoConsole->OutPut(SUCCESS_GREEN, "%s|连接服务器中心(%s:%u)成功!\n",
+					GetServerTypeNameByType((servertype)m_Ident.bType), m_SCAddr.addr.data(), m_SCAddr.nPort);
+			}
+		}
+		if (bRet && m_Ident.bType != ST_DATABASESERVER && m_iDBServerCount > 0)
+		{
+			if (!ConnectDBServer())
+				m_pIoConsole->OutPut(ERROR_RED, "%s|连接数据库服务器(%s:%u)失败, 将在后台重试...\n",
+					GetServerTypeNameByType((servertype)m_Ident.bType), m_DBAddrs[0].addr.data(), m_DBAddrs[0].nPort);
+		}
+		// 后端就绪后，开始监听客户端连接
 		std::array<char, 16> cp{};
 		strncpy(cp.data(), strcmp(szIpAddr.data(), "127.0.0.1") == 0 ? "127.0.0.1" : "0.0.0.0", cp.size() - 1);
 		bRet = m_xIocpServer.postListen(cp.data(), m_ServerAddr.nPort, 64, 100000);
 		if (bRet)
 		{
-			if (!InitServer(sf))
-				bRet = FALSE;
 			m_dwLoopStartTime = GetSteadyTimeMS();
 			StartIoThread(); // 先启动IO独立线程
 			if (!xThread::Start(this))
@@ -509,6 +531,14 @@ VOID CBaseServer::OnEvent(xEventSender* pSender, int iEvent, int iParam, LPVOID 
 					*pMsg = MainThreadMessage::MakeConnect(pObj->getId());
 					m_IoToMainQueue.push(pMsg);
 				}
+			}
+			else
+			{
+				// 对象池耗尽，立即关闭连接防止socket泄漏
+				m_pIoConsole->OutPut(ERROR_RED, "%s|对象池耗尽, 拒绝来自(%s:%u)的连接!\n",
+					GetServerTypeNameByType((servertype)m_Ident.bType),
+					pTempClient->getAddress(), pTempClient->getPort());
+				pTempClient->close();
 			}
 		}
 	}

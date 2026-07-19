@@ -1,5 +1,5 @@
 #pragma once
-#define	MAX_ATTACKREQUEST 100
+constexpr int MAX_ATTACKREQUEST = 100;
 
 #include <memory>
 #include <array>

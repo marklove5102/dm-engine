@@ -10,11 +10,11 @@ public:
 	CChangeMapEvent(const CChangeMapEvent&) = delete;           // 禁止拷贝构造
 	CChangeMapEvent& operator=(const CChangeMapEvent&) = delete; // 禁止拷贝赋值
 	// 对象进入事件区域
-	virtual VOID OnEnter(CMapObject* pObject);
+	virtual VOID OnEnter(CMapObject* pObject) override;
 	// 对象离开事件区域
-	virtual VOID OnLeave(CMapObject* pObject);
+	virtual VOID OnLeave(CMapObject* pObject) override;
 	// 进入地图事件
-	VOID OnEnterMap(CLogicMap* pMap);
+	VOID OnEnterMap(CLogicMap* pMap) override;
 	// 清理事件数据
 	VOID Clean();
 	// 静态方法：创建地图切换事件

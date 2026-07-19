@@ -142,53 +142,50 @@ BOOL CSe_Page::Parse(CScriptFile& file)
 		if (*pLine == 0 || (pLine[0] == '/' && pLine[1] == '/'))continue;
 		if (*pLine == '#')
 		{
-			CScriptElement* pElement = nullptr;
-			if (_stricmp(pLine, "#if") == 0 || _stricmp(pLine, "#ifnot") == 0 || _stricmp(pLine, "#ifone") == 0)
+		std::unique_ptr<CScriptElement> pElement;
+		if (_stricmp(pLine, "#if") == 0 || _stricmp(pLine, "#ifnot") == 0 || _stricmp(pLine, "#ifone") == 0)
+		{
+			pElement = std::make_unique<CSe_IfStatement>();
+			if (!pElement->Parse(file))
 			{
-				pElement = new CSe_IfStatement;
-				if (!pElement->Parse(file))
-				{
-					PRINT(ERROR_RED, "%s 块解析失败在 %s 的 %u 行!\n", pLine, file.GetFileName(), file.GetCurrentLineNumber());
-					delete pElement;
-				}
-				else
-					this->AddScriptElement(pElement);
+				PRINT(ERROR_RED, "%s 块解析失败在 %s 的 %u 行!\n", pLine, file.GetFileName(), file.GetCurrentLineNumber());
+				// pElement 自动释放, 无需手动 delete
 			}
-			else if (_stricmp(pLine, "#switch") == 0)
+			else
+				this->AddScriptElement(pElement.release());
+		}
+		else if (_stricmp(pLine, "#switch") == 0)
+		{
+			pElement = std::make_unique<CSe_SwitchStatement>();
+			if (!pElement->Parse(file))
 			{
-				pElement = new CSe_SwitchStatement;
-				if (!pElement->Parse(file))
-				{
-					PRINT(ERROR_RED, "switch 块解析失败在 %s 的 %u 行!\n", file.GetFileName(), file.GetCurrentLineNumber());
-					delete pElement;
-				}
-				else
-					this->AddScriptElement(pElement);
+				PRINT(ERROR_RED, "switch 块解析失败在 %s 的 %u 行!\n", file.GetFileName(), file.GetCurrentLineNumber());
 			}
-			else if (_strnicmp(pLine, "#json", 5) == 0)
+			else
+				this->AddScriptElement(pElement.release());
+		}
+		else if (_strnicmp(pLine, "#json", 5) == 0)
+		{
+			parsestate = EPS_JSON;
+			pElement = std::make_unique<CSe_JsonStatement>();
+			if (!pElement->Parse(file))
 			{
-				parsestate = EPS_JSON;
-				pElement = new CSe_JsonStatement;
-				if (!pElement->Parse(file))
-				{
-					PRINT(ERROR_RED, "json 块解析失败在 %s 的 %u 行!", file.GetFileName(), file.GetCurrentLineNumber());
-					delete pElement;
-				}
-				else
-					this->AddScriptElement(pElement);
+				PRINT(ERROR_RED, "json 块解析失败在 %s 的 %u 行!", file.GetFileName(), file.GetCurrentLineNumber());
 			}
-			else if (_strnicmp(pLine, "#flash", 6) == 0)
+			else
+				this->AddScriptElement(pElement.release());
+		}
+		else if (_strnicmp(pLine, "#flash", 6) == 0)
+		{
+			parsestate = EPS_FLASH;
+			pElement = std::make_unique<CSe_FlashStatement>();
+			if (!pElement->Parse(file))
 			{
-				parsestate = EPS_FLASH;
-				pElement = new CSe_FlashStatement;
-				if (!pElement->Parse(file))
-				{
-					PRINT(ERROR_RED, "flash 块解析失败在 %s 的 %u 行!", file.GetFileName(), file.GetCurrentLineNumber());
-					delete pElement;
-				}
-				else
-					this->AddScriptElement(pElement);
+				PRINT(ERROR_RED, "flash 块解析失败在 %s 的 %u 行!", file.GetFileName(), file.GetCurrentLineNumber());
 			}
+			else
+				this->AddScriptElement(pElement.release());
+		}
 			else if (_stricmp(pLine, "#act") == 0)
 				parsestate = EPS_ACT;
 			else if (_stricmp(pLine, "#say") == 0)
@@ -206,19 +203,18 @@ BOOL CSe_Page::Parse(CScriptFile& file)
 		}
 		else
 		{
-			CScriptElement* pElement = nullptr;
+			std::unique_ptr<CScriptElement> pElement;
 			if (parsestate == EPS_ACT)
-				pElement = new CSe_NormalAct;
+				pElement = std::make_unique<CSe_NormalAct>();
 			else
-				pElement = new CSe_NormalSay;
+				pElement = std::make_unique<CSe_NormalSay>();
 			if (!pElement->Parse(file))
 			{
 
 				PRINT(ERROR_RED, "语句 %s 解析失败在 %s 的 %u 行!\n", file.CurrentLine(), file.GetFileName(), file.GetCurrentLineNumber());
-				delete pElement;
 			}
 			else
-				this->AddScriptElement(pElement);
+				this->AddScriptElement(pElement.release());
 		}
 	}
 	return TRUE;
@@ -519,20 +515,20 @@ BOOL CSe_IfStatement::Parse(CScriptFile& file)
 		}
 		else
 		{
-			CScriptElement* pElement = nullptr;
+			std::unique_ptr<CScriptElement> pElement;
 			if (statementstate == IPS_IF)
 				parsestate = EPS_ACT;
 			if (parsestate == EPS_ACT)
-				pElement = new CSe_NormalAct;
+				pElement = std::make_unique<CSe_NormalAct>();
 			else
-				pElement = new CSe_NormalSay;
+				pElement = std::make_unique<CSe_NormalSay>();
 			if (!pElement->Parse(file))
 			{
 				PRINT(ERROR_RED, "语句 %s 解析失败在 %s 的 %u 行!\n", file.CurrentLine(), file.GetFileName(), file.GetCurrentLineNumber());
-				delete pElement;
 			}
 			else
 			{
+				CScriptElement* raw = pElement.release();
 				std::unique_ptr<CScriptElement>* ppList = nullptr;
 				if (statementstate == IPS_IF)
 					ppList = (std::unique_ptr<CScriptElement>*)&m_pCondition;
@@ -543,9 +539,9 @@ BOOL CSe_IfStatement::Parse(CScriptFile& file)
 				if (ppList)
 				{
 					if (*ppList)
-						(*ppList)->addTail(pElement);
+						(*ppList)->addTail(raw);
 					else
-						ppList->reset(pElement);
+						ppList->reset(raw);
 				}
 			}
 		}
@@ -653,22 +649,22 @@ BOOL CSe_CaseBlock::Parse(CScriptFile& file)
 		}
 		else
 		{
-			CScriptElement* pElement = nullptr;
+			std::unique_ptr<CScriptElement> pElement;
 			if (state == EPS_ACT)
-				pElement = new CSe_NormalAct;
+				pElement = std::make_unique<CSe_NormalAct>();
 			else
-				pElement = new CSe_NormalSay;
+				pElement = std::make_unique<CSe_NormalSay>();
 			if (!pElement->Parse(file))
 			{
 				PRINT(ERROR_RED, "语句 %s 解析失败在 %s 的 %u 行!\n", file.CurrentLine(), file.GetFileName(), file.GetCurrentLineNumber());
-				delete pElement;
 			}
 			else
 			{
+				CScriptElement* raw = pElement.release();
 				if (m_pElements)
-					m_pElements->addTail(pElement);
+					m_pElements->addTail(raw);
 				else
-					m_pElements.reset(pElement);
+					m_pElements.reset(raw);
 			}
 		}
 	}

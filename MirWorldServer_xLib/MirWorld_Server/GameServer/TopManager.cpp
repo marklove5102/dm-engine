@@ -315,7 +315,7 @@ VOID CTopManager::LoadFigure(const char* pszFile)
 	{
 		for (UINT i = 0; i < 6; i++)
 		{
-			sprintf(szItemName.data(), "top_%u_%u", i / 2, i % 2);
+			snprintf(szItemName.data(), szItemName.size(), "top_%u_%u", i / 2, i % 2);
 			char* p = (char*)sf.GetString("npc", szItemName.data(), "");
 			if (p[0] == 0)continue;
 			m_ProTopNpc[i] = CNpcManager::GetInstance()->AddNpc(p);
@@ -334,7 +334,7 @@ VOID CTopManager::Load(const char* pszFile)
 		for (UINT i = 0; i < 6; i++)
 		{
 			// name,dbid,class,sex,level,exp,date
-			sprintf(szItemName.data(), "top_%u_%u", i / 2, i % 2);
+			snprintf(szItemName.data(), szItemName.size(), "top_%u_%u", i / 2, i % 2);
 			char* p = (char*)sf.GetString("player", szItemName.data(), "");
 			if (p[0] == 0)continue;
 			xStringsExtracter<8> top(p, ",");
@@ -353,7 +353,7 @@ VOID CTopManager::Load(const char* pszFile)
 				if (m_ProTopNpc[i])
 				{
 					char szName[128];
-					sprintf(szName, "%s\\%s\\", m_ProTopNpc[i]->GetName(), m_ProfessionTop[i].szName);
+					snprintf(szName, 128, "%s\\%s\\", m_ProTopNpc[i]->GetName(), m_ProfessionTop[i].szName);
 					m_ProTopNpc[i]->SetLongName(szName);
 					m_ProTopNpc[i]->SendChangeName();
 				}
@@ -366,8 +366,8 @@ VOID CTopManager::Load(const char* pszFile)
 VOID CTopManager::Save(const char* pszFile)const
 {
 	if (pszFile[0] == 0)return;
-	FILE* fp = fopen(pszFile, "w");
-	if (fp == nullptr)return;
+	FileGuard fp(fopen(pszFile, "w"));
+	if (!fp)return;
 	fprintf(fp, "[player]\n");
 	for (UINT i = 0; i < 6; i++)
 	{
@@ -383,7 +383,7 @@ VOID CTopManager::Save(const char* pszFile)const
 		else
 			fprintf(fp, "top_%u_%u = \n", i / 2, i % 2);
 	}
-	fclose(fp);
+	// fclose 由 FileGuard 析构自动完成
 }
 
 BOOL CTopManager::UpdateTopInfo(CHumanPlayer* pPlayer)

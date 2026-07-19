@@ -64,11 +64,11 @@ BOOL CVariableFile::Save()
 	{
 		if (m_szName[0] == 0)return FALSE;
 		char szFilename[1024];
-		sprintf(szFilename, ".\\Data\\Variables\\%s.txt", m_szName.data());
+		snprintf(szFilename, 1024, ".\\Data\\Variables\\%s.txt", m_szName.data());
 		m_pFilename.reset(copystring(szFilename));
 	}
-	FILE* fp = fopen(m_pFilename.get(), "w");
-	if (fp == nullptr)return FALSE;
+	FileGuard fp(fopen(m_pFilename.get(), "w"));
+	if (!fp)return FALSE;
 	xStringList<32>* p = m_xVarList.GetList();
 	for (UINT n = 0; n < p->GetCount(); n++)
 	{
@@ -78,7 +78,7 @@ BOOL CVariableFile::Save()
 			pVal = "";
 		fprintf(fp, "%s = \"%s\"\n", (*p)[n]->pszString.get(), pVal);
 	}
-	fclose(fp);
+	// fclose 由 FileGuard 析构自动完成
 	return TRUE;
 }
 

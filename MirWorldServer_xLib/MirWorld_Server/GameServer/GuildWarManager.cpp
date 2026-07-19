@@ -57,7 +57,7 @@ BOOL CGuildWarManager::RequestWar(CGuildEx* pReqGuild, CGuildEx* pAtkGuild)
 	m_pGuildWars[this->m_nWarCount]->tmrWar.Savetime(CGameWorld::GetInstance()->GetVar(EVI_GUILDWARTIME) * 1000);
 
 	char szText[256];
-	sprintf(szText, "%s 和 %s 行会战争开始, 持续三小时", pReqGuild->GetName(), pAtkGuild->GetName());
+	snprintf(szText, 256, "%s 和 %s 行会战争开始, 持续三小时", pReqGuild->GetName(), pAtkGuild->GetName());
 	pAtkGuild->SendWords(szText);
 	pAtkGuild->ReviewAroundNameColor();
 	pReqGuild->SendWords(szText);
@@ -83,7 +83,7 @@ VOID CGuildWarManager::Update()
 			m_pGuildWars[m_nUpdatePtr]->pReqGuild->ReviewAroundNameColor();
 
 			char szText[256];
-			sprintf(szText, "%s 和 %s 行会战争结束", m_pGuildWars[m_nUpdatePtr]->pReqGuild->GetName(), m_pGuildWars[m_nUpdatePtr]->pAtkGuild->GetName());
+			snprintf(szText, 256, "%s 和 %s 行会战争结束", m_pGuildWars[m_nUpdatePtr]->pReqGuild->GetName(), m_pGuildWars[m_nUpdatePtr]->pAtkGuild->GetName());
 			m_pGuildWars[m_nUpdatePtr]->pAtkGuild->SendWords(szText);
 			m_pGuildWars[m_nUpdatePtr]->pReqGuild->SendWords(szText);
 

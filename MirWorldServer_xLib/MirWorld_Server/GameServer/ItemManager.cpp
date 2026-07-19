@@ -6,10 +6,6 @@
 
 CItemManager::CItemManager(VOID)
 {
-	m_nTempItemCount = 0;
-	m_nCreateItemCount = 0;
-	m_nDeleteTempItemCount = 0;
-	m_nIdentCount = 0;
 }
 
 CItemManager::~CItemManager(VOID)
@@ -115,7 +111,7 @@ VOID CItemManager::LoadScriptLink(const char* pszfile)
 		if (sss.getCount() > 0 && sss[0][0] != '\0') // 捡物品脚本
 		{
 			pClass->wPickupPageId = AddStringToPool(sss[0]);
-			PRINT(WARN_YELLOW, "物品 %s 加载捡物品脚本: %s\n", ss[0], sss[0]);
+			DPRINT(WARN_YELLOW, "物品 %s 加载捡物品脚本: %s\n", ss[0], sss[0]);
 		}
 		if (sss.getCount() > 1 && sss[1][0] != '\0') // 扔物品脚本
 		{
@@ -126,27 +122,27 @@ VOID CItemManager::LoadScriptLink(const char* pszfile)
 				pClass->wDropPageId = AddStringToPool(bb[0]);
 				pClass->dwDropPageDelay = 0;
 				pClass->dwDropPageExecuteTimes = 1;
-				PRINT(WARN_YELLOW, "物品 %s 加载扔物品脚本: %s\n", ss[0], bb[0]);
+				DPRINT(WARN_YELLOW, "物品 %s 加载扔物品脚本: %s\n", ss[0], bb[0]);
 			}
 			else if (bb.getCount() == 2)
 			{
 				pClass->wDropPageId = AddStringToPool(bb[1]);
 				pClass->dwDropPageDelay = (DWORD)StringToInteger(bb[0]);
 				pClass->dwDropPageExecuteTimes = 1;
-				PRINT(WARN_YELLOW, "物品 %s 加载扔物品脚本: %s, 时间间隔%s秒\n", ss[0], bb[1], bb[0]);
+				DPRINT(WARN_YELLOW, "物品 %s 加载扔物品脚本: %s, 时间间隔%s秒\n", ss[0], bb[1], bb[0]);
 			}
 			else if (bb.getCount() > 2)
 			{
 				pClass->wDropPageId = AddStringToPool(bb[2]);
 				pClass->dwDropPageDelay = (DWORD)StringToInteger(bb[1]);
 				pClass->dwDropPageExecuteTimes = (DWORD)StringToInteger(bb[0]);
-				PRINT(WARN_YELLOW, "物品 %s 加载扔物品脚本: %s, 时间间隔%s秒, 执行%s次\n", ss[0], bb[2], bb[1], bb[0]);
+				DPRINT(WARN_YELLOW, "物品 %s 加载扔物品脚本: %s, 时间间隔%s秒, 执行%s次\n", ss[0], bb[2], bb[1], bb[0]);
 			}
 		}
 		if (sss.getCount() > 2 && sss[2][0] != '\0') // 使用脚本
 		{
 			pClass->wPageId = AddStringToPool(sss[2]);
-			PRINT(WARN_YELLOW, "物品 %s 加载使用脚本: %s\n", ss[0], sss[2]);
+			DPRINT(WARN_YELLOW, "物品 %s 加载使用脚本: %s\n", ss[0], sss[2]);
 		}
 	}
 }
@@ -160,7 +156,7 @@ VOID CItemManager::LoadPetINI(const char* pszfile)
 	{
 		m_PetInfo info;
 		char sectionName[64];
-		sprintf(sectionName, "PetExp%d", i);
+		snprintf(sectionName, 64, "PetExp%d", i);
 		info.lv0 = sfGuild.GetInteger(sectionName, "lv0", 0);
 		info.lv1 = sfGuild.GetInteger(sectionName, "lv1", 0);
 		info.lv2 = sfGuild.GetInteger(sectionName, "lv2", 0);
@@ -219,7 +215,7 @@ BOOL CItemManager::CreateItem(const char* pszName, DWORD dwId, DWORD dwKey, DWOR
 	ITEM item;
 	if (pObj && CreateTempItem(pszName, item))
 	{
-		m_nCreateItemCount++;
+		m_nCreateItemCount.fetch_add(1, std::memory_order_relaxed);
 		if (IsBind)
 			item.SetBind(TRUE);
 		pObj->OnCreateItem(item, wPos, btFlag);
@@ -235,14 +231,14 @@ BOOL CItemManager::CreateTempItem(const char* pszName, ITEM& item, BOOL bRandomU
 		if (!MakeupRandomUpgradeItemTemplate(pszName, item, ratefix))return FALSE;
 	}
 	else if (!MakeupTemplateItem(pszName, item))return FALSE;
-	m_nTempItemCount++;
+	m_nTempItemCount.fetch_add(1, std::memory_order_relaxed);
 	item.dwMakeIndex = (m_xTempItemIdAllocor.allocid() | 0x80000000);
 	return TRUE;
 }
 
 VOID CItemManager::IdentItem(ITEM& item)
 {
-	m_nIdentCount++;
+	m_nIdentCount.fetch_add(1, std::memory_order_relaxed);
 	item.dwMakeIndex = (m_xTempItemIdAllocor.allocid() | 0x80000000);
 }
 
@@ -280,7 +276,7 @@ BOOL CItemManager::DeleteItem(DWORD dwMakeIndex)
 	}
 	if (dwMakeIndex & 0x80000000)
 	{
-		m_nDeleteTempItemCount++;
+		m_nDeleteTempItemCount.fetch_add(1, std::memory_order_relaxed);
 		m_xTempItemIdAllocor.freeid(dwMakeIndex & 0x7fffffff);
 		return TRUE;
 	}

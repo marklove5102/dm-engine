@@ -11,13 +11,13 @@ public:
 	SculpEiceEvent(const SculpEiceEvent&) = delete;           // 禁止拷贝构造
 	SculpEiceEvent& operator=(const SculpEiceEvent&) = delete; // 禁止拷贝赋值
 	// 更新可见事件状态
-	VOID OnUpdate(CVisibleEvent* pEvent);
+	VOID OnUpdate(CVisibleEvent* pEvent) override;
 	// 关闭可见事件
-	VOID OnClose(CVisibleEvent* pEvent);
+	VOID OnClose(CVisibleEvent* pEvent) override;
 	// 销毁事件实例
 	VOID Destroy();
 	// 更新事件状态
-	VOID Update();
+	VOID Update() override;
 	/**
 	 * 创建破壳事件实例
 	 * @param pOwner 事件所有者

@@ -15,7 +15,7 @@ public:
 	// 清理陷阱事件数据
 	VOID Clean();
 	// 对象进入陷阱事件
-	VOID OnEnter(CMapObject* pObject);
+	VOID OnEnter(CMapObject* pObject) override;
 	//VOID OnLeave( CMapObject * pObject );
 
 	// 进入地图
@@ -23,9 +23,9 @@ public:
 	// 离开地图
 	VOID LeaveMap();
 	// 进入地图事件
-	VOID OnEnterMap(CLogicMap* pMap);
+	VOID OnEnterMap(CLogicMap* pMap) override;
 	// 离开地图事件
-	VOID OnLeaveMap(CLogicMap* pMap);
+	VOID OnLeaveMap(CLogicMap* pMap) override;
 protected:
 	CMonsterTrapper* m_pTrapper; // 陷阱所有者指针
 };
@@ -41,9 +41,9 @@ public:
 	CMonsterTrapper(const CMonsterTrapper&) = delete;           // 禁止拷贝构造
 	CMonsterTrapper& operator=(const CMonsterTrapper&) = delete; // 禁止拷贝赋值
 	// 事件更新处理
-	VOID OnUpdate(CVisibleEvent* pEvent);
+	VOID OnUpdate(CVisibleEvent* pEvent) override;
 	// 事件关闭处理
-	VOID OnClose(CVisibleEvent* pEvent);
+	VOID OnClose(CVisibleEvent* pEvent) override;
 	//VOID OnEnter( CVisibleEvent * pEvent, CMapObject * pObject );
 	//VOID OnCreate( CVisibleEvent * pEvent );
 
@@ -57,7 +57,7 @@ public:
 	// 销毁陷阱
 	VOID Destroy();
 	// 更新陷阱状态
-	VOID Update();
+	VOID Update() override;
 	// 获取陷阱所有者
 	CHumanPlayer* GetOwner() { return m_pOwner; }
 	// 获取伤害值
@@ -70,14 +70,9 @@ public:
 	DWORD GetTrappedCount()const { return m_dwMonsterCount; }
 	// 增加捕获的怪物数量
 	VOID AddTrappedCount() { m_dwMonsterCount++; }
-	// 标记延迟销毁（解决 SRLock→SWLock 死锁）
-	VOID SetPendingDestroy() { m_bPendingDestroy = TRUE; }
-	// 检查是否需要延迟销毁
-	BOOL IsPendingDestroy()const { return m_bPendingDestroy; }
 private:
 	DWORD m_dwMonsterCount; // 捕获的怪物数量
 	BOOL m_bFailed; // 是否失败
-	BOOL m_bPendingDestroy; // 延迟销毁标志
 	int	m_nDamage; // 伤害值
 	DWORD m_dwLastTime; // 持续时间
 	DWORD m_dwOwnerInstanceKey; // 所有者实例键值

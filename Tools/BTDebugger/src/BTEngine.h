@@ -47,12 +47,21 @@ public:
     BTEngine();
 
     void Reset();
-    void ExecuteFull(std::shared_ptr<BTNode> root);
+    void ExecuteFull(std::shared_ptr<BTNode> root);  // 完整执行(单步用):清空全部状态含时间
+    void ExecuteStep(std::shared_ptr<BTNode> root);  // 自动播放用:保留跨tick时间状态(m_decoratorState/frameTime)
+    void ClearTimeState();                           // 显式清空时间状态(m_decoratorState + frameTime)
     void ResetNodeStates(std::shared_ptr<BTNode> node);
 
     std::vector<LogEntry>& GetLogs() { return m_logs; }
     int GetStepCount() const { return m_stepCount; }
     ExecutionContext& GetContext() { return m_ctx; }
+    // 暴露装饰器状态(供 UI 计算时间节点剩余时间)
+    std::map<std::wstring, DWORD>& GetDecoratorState() { return m_decoratorState; }
+
+    // 装饰节点（Timeout/Cooldown/Periodic）需要帧时间驱动，
+    // 自动播放时每帧推进模拟时钟，使时间相关装饰器产生可见效果
+    void AdvanceFrame(DWORD dwDeltaMs) { m_ctx.frameTime += dwDeltaMs; }
+    void SetFrameTime(DWORD dwMs) { m_ctx.frameTime = dwMs; }
 
 private:
     BTResult ExecuteNode(std::shared_ptr<BTNode> node);
@@ -67,6 +76,7 @@ private:
     BTResult ExecuteDecoratorRepeat(std::shared_ptr<BTNode> node);
     BTResult ExecuteDecoratorTimeout(std::shared_ptr<BTNode> node);
     BTResult ExecuteDecoratorCooldown(std::shared_ptr<BTNode> node);
+    BTResult ExecuteDecoratorPeriodic(std::shared_ptr<BTNode> node);
     BTResult ExecuteSucceeder(std::shared_ptr<BTNode> node);
     BTResult ExecuteFailer(std::shared_ptr<BTNode> node);
     BTResult ExecuteCondition(std::shared_ptr<BTNode> node);
@@ -77,7 +87,8 @@ private:
     std::mt19937 m_rng;
     ExecutionContext m_ctx;
     std::vector<LogEntry> m_logs;
-    std::map<std::wstring, size_t> m_memPositions;
+    std::map<std::wstring, size_t> m_memPositions;   // MemSequence/MemSelector 记忆位置
+    std::map<std::wstring, DWORD> m_decoratorState;  // 装饰节点时间状态（StartTime/LastExec/LastTrigger）
     int m_stepCount = 0;
     int m_execOrder = 0;
 };

@@ -22,7 +22,7 @@ class CGuildGroupEx;
 
 typedef xListHost<CGuildMemberEx>::xListNode GUILDMEMBERNODE;
 typedef xListHost<CGuildGroupEx>::xListNode GUILDGROUPNODE;
-#define MAX_GUILD_NOTICE_LENGTH	2048
+constexpr int MAX_GUILD_NOTICE_LENGTH = 2048;
 
 class CGuildMemberEx
 {

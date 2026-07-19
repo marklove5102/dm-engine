@@ -70,9 +70,9 @@ VOID CServer::OnMASMsg(WORD wCmd, WORD wType, WORD wIndex, const char* pszData, 
 	case MAS_ENTERSELCHARSERVER:
 	{
 		//	id/lid/account
-		std::array<char*, 5> Params{};
+		std::array<char*, 3> Params{};
 		std::array<char, 200> szRetString{};
-		int nParam = SearchParam((char*)pszData, Params.data(), 5, "/");
+		int nParam = SearchParam((char*)pszData, Params.data(), 3, "/");
 		SERVER_ERROR ret = SE_OK;
 		UINT nClientId = static_cast<UINT>(strtoul(Params[0], nullptr, 10));
 		if (nParam == 3)
@@ -113,7 +113,7 @@ SERVER_ERROR CServer::AddEnterAccount(UINT nLoginId, const char* pszAccount, UIN
 	}
 	pEnter->nListId = id;
 	pEnter->nLid = nLoginId;
-	pEnter->nSid = nSelCharId == 0 ? static_cast<UINT>(__rdtsc()) : nSelCharId;
+	pEnter->nSid = nSelCharId == 0 ? static_cast<UINT>(__rdtsc() & 0x7FFFFFFF) : nSelCharId;
 	strncpy(pEnter->szAccount.data(), pszAccount, 10);
 	pEnter->szAccount[10] = 0;
 	pEnter->dwEnterTime = CFrameTime::GetFrameTime();

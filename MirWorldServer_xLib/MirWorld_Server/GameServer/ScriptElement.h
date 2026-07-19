@@ -130,8 +130,8 @@ class CSe_Goods : public CScriptElement
 public:
 	CSe_Goods() { m_pGoodsList = nullptr; }
 	virtual ~CSe_Goods() { }
-	BOOL Parse(CScriptFile& file);
-	VOID Destroy();
+	BOOL Parse(CScriptFile& file) override;
+	VOID Destroy() override;
 	bool hasFourchar(const char* szName);//判断是否有4个负数, 来表示数组包含两个中文
 	Goods* getList() { return m_pGoodsList; }
 protected:
@@ -154,13 +154,13 @@ class CSe_Page : public CScriptElement
 public:
 	CSe_Page(VOID);
 	virtual ~CSe_Page(VOID) { }
-	BOOL Parse(CScriptFile& file);
-	BOOL Execute(CScriptShell* pShell, CScriptTarget* pTarget, CScriptView* pView);
+	BOOL Parse(CScriptFile& file) override;
+	BOOL Execute(CScriptShell* pShell, CScriptTarget* pTarget, CScriptView* pView) override;
 	Page_Access_Right getAccessRight() { return m_AccessRight; }
 	const char* getName() { return m_szName; }
 	CScriptObject* getObject() { return m_pObject; }
 	VOID setObject(CScriptObject* pObject) { m_pObject = pObject; }
-	VOID Destroy();
+	VOID Destroy() override;
 protected:
 	VOID AddScriptElement(CScriptElement* pElement);
 	Page_Access_Right m_AccessRight;
@@ -184,11 +184,11 @@ public:
 		m_fnProc = nullptr;
 	}
 	virtual ~CSe_NormalAct() { }
-	BOOL Parse(CScriptFile& file);
-	BOOL Execute(CScriptShell* pShell, CScriptTarget* pTarget, CScriptView* pView);
+	BOOL Parse(CScriptFile& file) override;
+	BOOL Execute(CScriptShell* pShell, CScriptTarget* pTarget, CScriptView* pView) override;
 	//VOID setResult( DWORD dwResult ){ m_dwResult = dwResult;}
 	DWORD getResult()const { return m_dwResult; }
-	VOID Destroy();
+	VOID Destroy() override;
 	//UINT getCommand(){ return m_nCommand;}
 	//ScriptParamEx * getParams(){ return m_pParams;}
 	//DWORD	getParamCount(){ return m_nParamCount;}
@@ -209,9 +209,9 @@ class CSe_NormalSay : public CScriptElement
 public:
 	CSe_NormalSay() = default;
 	virtual ~CSe_NormalSay() { }
-	BOOL Parse(CScriptFile& file);
-	BOOL Execute(CScriptShell* pShell, CScriptTarget* pTarget, CScriptView* pView);
-	VOID Destroy();
+	BOOL Parse(CScriptFile& file) override;
+	BOOL Execute(CScriptShell* pShell, CScriptTarget* pTarget, CScriptView* pView) override;
+	VOID Destroy() override;
 protected:
 	pooled_string_ptr m_pSayWords;
 };
@@ -231,9 +231,9 @@ class CSe_IfStatement : public CScriptElement
 public:
 	CSe_IfStatement() : m_bNot(FALSE), m_bOne(FALSE) {}
 	virtual ~CSe_IfStatement() { }
-	BOOL Parse(CScriptFile& file);
-	BOOL Execute(CScriptShell* pShell, CScriptTarget* pTarget, CScriptView* pView);
-	VOID Destroy();
+	BOOL Parse(CScriptFile& file) override;
+	BOOL Execute(CScriptShell* pShell, CScriptTarget* pTarget, CScriptView* pView) override;
+	VOID Destroy() override;
 protected:
 	BOOL CheckConditionList(CScriptShell* pShell, CScriptTarget* pTarget, CScriptView* pView);
 	std::unique_ptr<CSe_NormalAct> m_pCondition;
@@ -253,10 +253,10 @@ class CSe_CaseBlock : public CScriptElement
 public:
 	CSe_CaseBlock() : m_nCode(0) {}
 	virtual ~CSe_CaseBlock() { }
-	BOOL Parse(CScriptFile& file);
-	BOOL Execute(CScriptShell* pShell, CScriptTarget* pTarget, CScriptView* pView);
+	BOOL Parse(CScriptFile& file) override;
+	BOOL Execute(CScriptShell* pShell, CScriptTarget* pTarget, CScriptView* pView) override;
 	UINT getCode()const { return m_nCode; }
-	VOID Destroy();
+	VOID Destroy() override;
 protected:
 	UINT m_nCode;
 	std::unique_ptr<CScriptElement> m_pElements;
@@ -279,9 +279,9 @@ class CSe_SwitchStatement : public CScriptElement
 public:
 	CSe_SwitchStatement() = default;
 	virtual ~CSe_SwitchStatement() { }
-	BOOL Parse(CScriptFile& file);
-	BOOL Execute(CScriptShell* pShell, CScriptTarget* pTarget, CScriptView* pView);
-	VOID Destroy();
+	BOOL Parse(CScriptFile& file) override;
+	BOOL Execute(CScriptShell* pShell, CScriptTarget* pTarget, CScriptView* pView) override;
+	VOID Destroy() override;
 protected:
 	std::vector<std::unique_ptr<CSe_CaseBlock>> m_pCaseBlocks;
 	std::unique_ptr<CSe_NormalAct> m_pBranchSource;
@@ -297,9 +297,9 @@ class CSe_JsonStatement : public CScriptElement
 public:
 	CSe_JsonStatement() : m_nType(0) {}
 	virtual ~CSe_JsonStatement() { }
-	BOOL Parse(CScriptFile& file);
-	BOOL Execute(CScriptShell* pShell, CScriptTarget* pTarget, CScriptView* pView);
-	VOID Destroy();
+	BOOL Parse(CScriptFile& file) override;
+	BOOL Execute(CScriptShell* pShell, CScriptTarget* pTarget, CScriptView* pView) override;
+	VOID Destroy() override;
 protected:
 	UINT m_nType;
 	pooled_string_ptr m_pWords;
@@ -315,9 +315,9 @@ class CSe_FlashStatement : public CScriptElement
 public:
 	CSe_FlashStatement() : m_nType(0) {}
 	virtual ~CSe_FlashStatement() { }
-	BOOL Parse(CScriptFile& file);
-	BOOL Execute(CScriptShell* pShell, CScriptTarget* pTarget, CScriptView* pView);
-	VOID Destroy();
+	BOOL Parse(CScriptFile& file) override;
+	BOOL Execute(CScriptShell* pShell, CScriptTarget* pTarget, CScriptView* pView) override;
+	VOID Destroy() override;
 protected:
 	UINT m_nType;
 	pooled_string_ptr m_pWords;

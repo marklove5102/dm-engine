@@ -70,19 +70,18 @@ VOID TriggerEvent::OnUpdate(CVisibleEvent* pEvent)
 	CMapCellInfo* pInfo = pMap->GetMapCellInfoShared(dx, dy);
 	if (pInfo && pInfo->m_xObjectList.getCount() > 0)
 	{
-		xListHost<CMapObject>::xListNode* pNode = pInfo->m_xObjectList.getHead();
-		while (pNode)
+		xListHelper<CMapObject> helper(&pInfo->m_xObjectList);
+		for (CMapObject* pObj = helper.first(); pObj != nullptr; pObj = helper.next())
 		{
-			if (pNode->getObject() && pNode->getObject()->GetClassType() == CLS_ALIVEOBJECT)
+			if (pObj && pObj->GetClassType() == CLS_ALIVEOBJECT)
 			{
-				CAliveObject* pAObj = (CAliveObject*)pNode->getObject();
+				CAliveObject* pAObj = (CAliveObject*)pObj;
 				if (pAObj->GetType() == OBJ_PLAYER && !pAObj->IsDeath())
 				{
 					CHumanPlayer* pPlayer = (CHumanPlayer*)pAObj;
 					CSystemScript::GetInstance()->Execute(pPlayer->GetScriptTarget(), this->m_szPage.data(), FALSE);
 				}
 			}
-			pNode = pNode->getNext();
 		}
 	}
 }

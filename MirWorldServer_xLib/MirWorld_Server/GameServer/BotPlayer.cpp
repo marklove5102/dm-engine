@@ -21,6 +21,7 @@ CBotPlayer::CBotPlayer(VOID) : CHumanPlayer()
 	m_dwThinkInterval = 500;    // 默认500ms思考一次
 	m_dwIdleChance = 5;         // 5%概率发呆
 	m_dwChatChance = 2;         // 2%概率聊天
+	m_dwCachedThinkInterval = 400; // 首帧战斗间隔(确保首帧快速思考)
 	m_dwOnlineTime = 0;
 	m_dwLastTickTime = 0;
 	memset(&m_BotDesc, 0, sizeof(m_BotDesc));
@@ -161,16 +162,26 @@ VOID CBotPlayer::Update()
 	// 帧级预计算：刷新帧时间缓存（轻量操作，每次Update都做）
 	m_pContext->SetFrameTime(dwNow);
 
-	// 自适应思考间隔：战斗中400ms / 巡逻1000ms / 安全区3000ms / 死亡跳过
-	DWORD dwBaseInterval = ComputeThinkInterval();
-	if (dwBaseInterval == 0) return;
-	DWORD dwActualInterval = CBotHumanBehavior::RandomizeThinkInterval(dwBaseInterval);
-	if (!m_tmrThinkInterval.IsTimeOut(dwActualInterval))
+	// 思考间隔检查必须在 ComputeThinkInterval() 之前!
+	// ComputeThinkInterval() 内部调用 GetCachedTarget()→FindNearestMonster(),
+	// 若缓存失效则每帧触发全量可见对象扫描(之前是主要CPU热点 ~13%)。
+	// 现在使用上次缓存的随机化间隔判断, 仅在时间到后才进入思考路径。
+	if (!m_tmrThinkInterval.IsTimeOut(m_dwCachedThinkInterval))
 		return;
 	m_tmrThinkInterval.Savetime();
 
-	// 预计算目标
+	// 预计算目标 (必须在 ComputeThinkInterval 之前, 确保 GetCachedTarget O(1) 命中缓存)
 	m_pContext->PrecomputeTarget();
+
+	// 自适应思考间隔 (此时 GetCachedTarget 已命中缓存, 无 FindNearestMonster 开销)
+	DWORD dwBaseInterval = ComputeThinkInterval();
+	if (dwBaseInterval == 0)
+	{
+		m_dwCachedThinkInterval = 1000;
+		return;
+	}
+	m_dwCachedThinkInterval = CBotHumanBehavior::RandomizeThinkInterval(dwBaseInterval);
+
 	// 随机发呆（模拟真人行为）
 	/*if (CBotHumanBehavior::ShouldIdle(m_dwIdleChance))
 		return;*/

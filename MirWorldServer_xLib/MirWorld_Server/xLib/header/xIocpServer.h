@@ -127,8 +127,8 @@ private:
 	xObjectPool<xTempClient> m_xTempClientPool;
 	xIocpManager m_xIocpManager;
 	xMpscQueue<xClientObject, 1024> m_xActiveClientQueue; // 活跃连接队列
-	// 连接限流器
+	// 连接限流器（原子操作保证多线程安全）
 	std::atomic<DWORD> m_dwConnectionsPerSecond{ 0 };
 	DWORD m_dwMaxConnectionsPerSecond = 100;  // 每秒最大新连接数
-	CServerTimer m_ConnectionRateTimer;
+	std::atomic<DWORD> m_dwLastRateReset{ 0 }; // 上次速率重置时间戳（ms），CAS 保证单线程重置
 };

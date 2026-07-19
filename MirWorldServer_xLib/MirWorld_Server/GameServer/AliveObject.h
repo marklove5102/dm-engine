@@ -1,6 +1,6 @@
 #pragma once
 #include "mapobject.h"
-#include "AliveComponentsManager.h"
+#include <mutex>
 #include <memory>
 #include <unordered_map>
 #include <array>
@@ -85,6 +85,7 @@ private:
 };
 
 constexpr int VIEW_RANGE = 16; // 原版是12
+constexpr int VIEW_SEARCH_RANGE = VIEW_RANGE + 2;
 typedef xListHost<VISIBLE_OBJECT> VISIBLE_OBJECT_LIST;
 // 活体对象类, 继承自CMapObject对象
 class CAliveObject : public CMapObject
@@ -173,16 +174,6 @@ public:
 	virtual BYTE GetRunSpeed() { return m_btRunSpeed; }
 	VOID SetRunSpeed(BYTE btSpeed) { m_btRunSpeed = btSpeed; }
 
-	// ========== ECS 组件访问器 (统一入口) ==========
-	inline BOOL CheckTimer(TimerType type, DWORD intervalMs)
-	{
-		return AliveComponentsManager::GetInstance()->CheckAliveTimer(GetECSEntity(), type, intervalMs);
-	}
-	inline VOID ResetTimer(TimerType type)
-	{
-		AliveComponentsManager::GetInstance()->ResetAliveTimer(GetECSEntity(), type);
-	}
-
 	WORD GetDeInvisibleLevel() { return m_wDeInvisibleLevel; }
 	e_direction GetDirection()const { return m_Direction; }
 	e_direction GetValidDirection(int dir) { return static_cast<e_direction>((static_cast<int>(dir) + ED_MAX) % ED_MAX); }
@@ -263,10 +254,9 @@ public:
 			if (IsStatusSet(SI_BUBBLEDEFENCEUP))
 			{
 				int nodamage = GetNoDamage();
-				// 将免伤值除以 100, 得到百分比值
-				int64_t temp = (int64_t)nDamage * nodamage * INV_100;
-				temp >>= 32;
-				nDamage -= (int)temp;
+				double nodamagePercentage = nodamage / 100.0; // 将免伤值除以 100, 得到百分比值
+				int temp = static_cast<int>(static_cast<double>(nDamage) * nodamagePercentage);
+				nDamage -= temp;
 				int tempd = SecondResMag_count();
 				if (tempd == 0)
 				{
@@ -287,9 +277,10 @@ public:
 			if (IsStatusSet(SI_BUBBLEDEFENCEUP))
 			{
 				int nodamage = GetNoDamage();
-				int64_t temp = (int64_t)nDamage * nodamage * INV_100;
-				temp >>= 32;
-				nDamage -= (int)temp;
+				double nodamagePercentage = nodamage / 100.0; // 将无伤害值除以 100, 得到百分比值
+				//将整数类型的 nDamage 转换为浮点数类型, 执行乘法运算, 然后再转换回整数类型
+				int temp = static_cast<int>(static_cast<double>(nDamage) * nodamagePercentage);
+				nDamage -= temp;
 				int tempd = SecondResMag_count();
 				if (tempd == 0)
 				{
@@ -406,7 +397,7 @@ public:
 		{
 		case SI_PALSY:
 		{
-			if (!AliveComponentsManager::GetInstance()->CheckStatusImmunity(GetECSEntity(), SI_PALSY)) return FALSE;
+			if (!m_status26Timer.IsTimeOut(m_dwStatus26)) return FALSE;
 		}
 		break;
 		}
@@ -483,6 +474,11 @@ public:
 	VOID SetSuperHit(BOOL bSuperHit) { m_bSuperHit = bSuperHit; }
 	BOOL IsSuperHit()const { return m_bSuperHit; }
 
+	DWORD GetHpRecoverTick()const { return m_dwHpRecoverTick; }
+	VOID SetHpRecoverTick(DWORD dwTick) { m_dwHpRecoverTick = dwTick; }
+
+	DWORD GetMpRecoverTick()const { return m_dwMpRecoverTick; }
+	VOID SetMpRecoverTick(DWORD dwTick) { m_dwMpRecoverTick = dwTick; }
 
 	VOID SetAddHp(DWORD dwAddValue, DWORD dwSpeed)
 	{
@@ -578,7 +574,13 @@ protected:
 	DWORD m_dwAddMpSpeed; // 增加魔法值速度
 	CServerTimer m_AddMpTimer; // 加魔法值定时器
 
+	CServerTimer m_HpRecoverTimer; // 恢复生命值定时器
+	DWORD m_dwHpRecoverTick; // 恢复生命值间隔时间
 
+	CServerTimer m_MpRecoverTimer; // 恢复魔法值定时器
+	DWORD m_dwMpRecoverTick; // 恢复魔法值间隔时间
+
+	CServerTimer m_ActionTimer; // 动作定时器
 	CServerTimer m_CustomTimer; // 自定义使用定时器
 
 	BOOL m_bSuperHit;
@@ -607,8 +609,8 @@ protected:
 	xListHost<VISIBLE_OBJECT> m_xVisibleObjectList;
 	xListHost<VISIBLE_OBJECT> m_xVisibleItemsList;
 
-	std::unordered_map<CMapObject*, VISIBLE_OBJECT*> m_mapVisibleObject; // 活体对象快速查找（单线程访问：同一地图对象由同一UpdatePlayers线程组处理）
-	std::unordered_map<CMapObject*, VISIBLE_OBJECT*> m_mapVisibleItems; // 物品对象快速查找（单线程访问：同上）
+	std::unordered_map<CMapObject*, VISIBLE_OBJECT*> m_mapVisibleObject; // 活体对象快速查找
+	std::unordered_map<CMapObject*, VISIBLE_OBJECT*> m_mapVisibleItems; // 物品对象快速查找
 
 	BOOL m_bDead;
 	BOOL m_bPosLocked;
@@ -664,16 +666,58 @@ public:
 	//判断中技能延时是否到时间
 	BOOL IsSkillTime(int wMagicId) const
 	{
-		return AliveComponentsManager::GetInstance()->CheckImmunityTimer(GetECSEntity(), wMagicId);
+		switch (wMagicId)
+		{
+		case 6:
+			if (m_skill6Timer.IsTimeOut(m_dwSkill6)) return TRUE;
+		break;
+		case 45:
+			if (m_skill45Timer.IsTimeOut(m_dwSkill45)) return TRUE;
+		break;
+		}
+		return FALSE;
 	}
 	//设置多少时间内不中技能伤害
 	VOID SetSkillTime(int wMagicId, DWORD nTime)
 	{
-		AliveComponentsManager::GetInstance()->SetImmunityTimer(GetECSEntity(), wMagicId, nTime);
+		switch (wMagicId)
+		{
+		case 6:
+		{
+			m_dwSkill6 = nTime;
+			m_skill6Timer.Savetime();
+		}
+		break;
+		case 45:
+		{
+			m_dwSkill45 = nTime;
+			m_skill45Timer.Savetime();
+		}
+		break;
+		default:
+			break;
+		}
 	}
 	//设置缩少时间内不中状态
 	VOID SetStatusTime(int index, DWORD nTime)
 	{
-		AliveComponentsManager::GetInstance()->SetStatusImmunity(GetECSEntity(), index, nTime);
+		switch (index)
+		{
+		case SI_PALSY:
+		{
+			m_dwStatus26 = nTime;
+			m_status26Timer.Savetime();
+		}
+		break;
+		default:
+			break;
+		}
 	}
+private:
+	CServerTimer m_skill6Timer; // 不中施毒术计时器
+	DWORD m_dwSkill6; // 不中施毒术时间
+	CServerTimer m_skill45Timer; // 不中诅咒术计时器
+	DWORD m_dwSkill45; // 不中诅咒术时间
+	CServerTimer m_status26Timer; // 不中麻痹状态计时器
+	DWORD m_dwStatus26; // 不中麻痹状态时间
 };

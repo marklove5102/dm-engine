@@ -477,7 +477,7 @@ int CServerForm::EnterMessageLoop()
 				}
 			}
 		}
-		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+		std::this_thread::sleep_for(std::chrono::milliseconds(200));
 	}
 	// 等待定时器线程结束
 	if (hTimerThread)

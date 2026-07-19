@@ -1,5 +1,5 @@
 #include "StdAfx.h"
-#include ".\timesystem.h"
+#include "timesystem.h"
 #include "gameworld.h"
 
 CTimeSystem::CTimeSystem(VOID)
@@ -14,6 +14,7 @@ CTimeSystem::~CTimeSystem(VOID)
 {
 }
 
+// ¸üÐÂ
 VOID CTimeSystem::Update()
 {
 	if (m_tmrUpdate.IsTimeOut(1000))

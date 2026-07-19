@@ -16,9 +16,10 @@ struct Skill {
 };
 
 struct Magic {
-	int id;
+	int id = 0;
 	std::vector<Skill> skills;
 };
+
 class CMagicManager : public xSingletonClass<CMagicManager>
 {
 public:
@@ -60,4 +61,6 @@ private:
 	CNameHash m_MagicClassHash;
 	std::array<MAGICCLASS*, 128> m_pMagicArray{};
 	SmallFlatMap<WORD, Magic, 128> magics; // 栈存储替代 unordered_map
+	// 池化技能
+	static xObjectPool<typename xListHost<MAGICCLASS>::xListNode> m_xMagicNodePool;
 };

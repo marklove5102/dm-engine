@@ -190,13 +190,13 @@ VOID CMonsterGenManager::InitAllGen()
 		// 每批处理完后输出进度
 		if (batch + BATCH_SIZE < m_iMonsterGenCount)
 		{
-			PRINT(CYAN, "初始化怪物进度: %d/%d (%.2f%%), 当前生成 %d 个怪物, 总共 %d 个怪物\n",
+			DPRINT(CYAN, "初始化怪物进度: %d/%d (%.2f%%), 当前生成 %d 个怪物, 总共 %d 个怪物\n",
 				iProcessedCount, m_iMonsterGenCount,
 				(float)iProcessedCount * 100.0f / m_iMonsterGenCount,
 				iBatchGenCount, iInitGenCount);
 		}
 	}
-	PRINT(CYAN, "初始化怪物进度: %d/%d (100.00%%), 共 %d 个刷怪点, %d 个怪物!\n",
+	DPRINT(CYAN, "初始化怪物进度: %d/%d (100.00%%), 共 %d 个刷怪点, %d 个怪物!\n",
 		iProcessedCount, m_iMonsterGenCount, iProcessedCount, iInitGenCount);
 }
 
@@ -227,10 +227,7 @@ BOOL CMonsterGenManager::UpdateGenEx(MONSTERGEN* p, IMonsterSpawnStrategy* pStra
 	if (p->curcount >= p->count) return TRUE;
 	
 	int iSuccess = 0;
-	bool bResult = pStrategy->SpawnMonster(this, p, iSuccess, maxcount, bSetGenPtr, bGotoTarget, wTargetX, wTargetY, initGenCount);
-
-	if (!bResult) return FALSE;
-	
+	pStrategy->SpawnMonster(this, p, iSuccess, maxcount, bSetGenPtr, bGotoTarget, wTargetX, wTargetY, initGenCount);	
 	// 错误计数处理
 	if (iSuccess == 0)
 	{
@@ -240,7 +237,6 @@ BOOL CMonsterGenManager::UpdateGenEx(MONSTERGEN* p, IMonsterSpawnStrategy* pStra
 			p->count = 0;
 			PRINT(ERROR_RED, "在地图 %d 的 (%d,%d) 刷 %s 怪, 10次错误被禁用!\n",
 				p->mapid, p->x, p->y, p->szName);
-			p->xMonsterList.destroy();
 			return FALSE;
 		}
 	}
@@ -251,7 +247,7 @@ BOOL CMonsterGenManager::UpdateGenEx(MONSTERGEN* p, IMonsterSpawnStrategy* pStra
 	return TRUE;
 }
 
-bool CRandomRangeSpawnStrategy::SpawnMonster(CMonsterGenManager* pMgr, MONSTERGEN* p, int& iSuccess, int maxcount, BOOL bSetGenPtr, BOOL bGotoTarget, WORD wTargetX, WORD wTargetY, int* initGenCount)
+VOID CRandomRangeSpawnStrategy::SpawnMonster(CMonsterGenManager* pMgr, MONSTERGEN* p, int& iSuccess, int maxcount, BOOL bSetGenPtr, BOOL bGotoTarget, WORD wTargetX, WORD wTargetY, int* initGenCount)
 {
 	CLogicMap* pMap = CLogicMapMgr::GetInstance()->GetLogicMapById(p->mapid);
 	CMonsterManagerEx* pMonsterMgr = CMonsterManagerEx::GetInstance();
@@ -266,40 +262,56 @@ bool CRandomRangeSpawnStrategy::SpawnMonster(CMonsterGenManager* pMgr, MONSTERGE
 	const int starty = p->y - p->range;
 	const int endy = p->y + p->range;
 
+	int nPlaced = 0;
 	for (int i = start; i < end; i++)
 	{
-		if (iSuccess >= maxcount) continue;
+		if (nPlaced >= maxcount) break;
 
-		int tx = GetRangeRand(startx, endx);
-		int ty = GetRangeRand(starty, endy);
-		tx = MAX(0, MIN(mapw - 1, tx));
-		ty = MAX(0, MIN(maph - 1, ty));
+		BOOL bOk = FALSE;
+		for (int retry = 0; retry < 8 && !bOk; retry++)
+		{
+			int tx = GetRangeRand(startx, endx);
+			int ty = GetRangeRand(starty, endy);
+			tx = MAX(0, MIN(mapw - 1, tx));
+			ty = MAX(0, MIN(maph - 1, ty));
 
-		if (pMap->IsPhysicsBlocked(tx, ty))
-		{
-			POINT pt;
-			if (pMap->GetValidPoint(tx, ty, &pt, 1) == 0) continue;
-			tx = pt.x; ty = pt.y;
-		}
-		CMonsterEx* pMonster = pMonsterMgr->CreateMonster(p->szName, p->mapid, tx, ty, p);
-		if (pMonster)
-		{
-			iSuccess++;
-			if (!pGameWorld->AddMapObject(pMonster))
-				pMonsterMgr->DeleteMonsterImm(pMonster);
-			else
+			if (pMap->IsPhysicsBlocked(tx, ty))
 			{
-				pMonster->SetGotoTarget(bGotoTarget, wTargetX, wTargetY);
-				if (initGenCount) (*initGenCount)++;
-				if(bSetGenPtr) p->xMonsterList.addObject(pMonster); // 把刷的怪对象针放到列表
+				POINT pt;
+				if (pMap->GetValidPoint(tx, ty, &pt, 1) == 0) continue;
+				tx = pt.x; ty = pt.y;
 			}
-			if (!bSetGenPtr) pMonster->SetGen(nullptr);
+			CMonsterEx* pMonster = pMonsterMgr->CreateMonster(p->szName, p->mapid, tx, ty, p);
+			if (pMonster)
+			{
+				iSuccess++;
+				if (!pGameWorld->AddMapObject(pMonster))
+					pMonsterMgr->DeleteMonsterImm(pMonster);
+				else
+				{
+					pMonster->SetGotoTarget(bGotoTarget, wTargetX, wTargetY);
+					if (initGenCount) (*initGenCount)++;
+					if (bSetGenPtr)
+					{
+						if (!p->xMonsterList.addObject(pMonster))
+						{
+							DPRINT(ERROR_RED, "刷怪列表已满! %s 地图(%d) 位置(%d,%d) 超出容量限制\n",
+								p->szName, p->mapid, tx, ty);
+							p->xMonsterList.delObject(pMonster);
+							pGameWorld->RemoveMapObject(pMonster);
+							pMonsterMgr->DeleteMonsterImm(pMonster);
+						}
+					}
+					nPlaced++;
+					bOk = TRUE;
+				}
+				if (!bSetGenPtr) pMonster->SetGen(nullptr);
+			}
 		}
 	}
-	return true;
 }
 
-bool CSpecialFormationSpawnStrategy::SpawnMonster(CMonsterGenManager* pMgr, MONSTERGEN* p, int& iSuccess, int maxcount, BOOL bSetGenPtr, BOOL bGotoTarget, WORD wTargetX, WORD wTargetY, int* initGenCount)
+VOID CSpecialFormationSpawnStrategy::SpawnMonster(CMonsterGenManager* pMgr, MONSTERGEN* p, int& iSuccess, int maxcount, BOOL bSetGenPtr, BOOL bGotoTarget, WORD wTargetX, WORD wTargetY, int* initGenCount)
 {
 	CLogicMap* pMap = CLogicMapMgr::GetInstance()->GetLogicMapById(p->mapid);
 	CMonsterManagerEx* pMonsterMgr = CMonsterManagerEx::GetInstance();
@@ -323,7 +335,17 @@ bool CSpecialFormationSpawnStrategy::SpawnMonster(CMonsterGenManager* pMgr, MONS
 			{
 				pMonster->SetGotoTarget(bGotoTarget, wTargetX, wTargetY);
 				if (initGenCount) (*initGenCount)++;
-				if (bSetGenPtr) p->xMonsterList.addObject(pMonster); // 把刷的怪对象针放到列表
+				if (bSetGenPtr)
+				{
+					if (!p->xMonsterList.addObject(pMonster)) // 把刷的怪对象针放到列表
+					{
+						DPRINT(ERROR_RED, "刷怪列表已满! %s 地图(%d) 位置(%d,%d) 超出容量限制\n",
+							p->szName, p->mapid, tx, ty);
+						p->xMonsterList.delObject(pMonster);
+						pGameWorld->RemoveMapObject(pMonster);
+						pMonsterMgr->DeleteMonsterImm(pMonster);
+					}
+				}
 			}
 			if (!bSetGenPtr) pMonster->SetGen(nullptr);
 		}
@@ -331,5 +353,4 @@ bool CSpecialFormationSpawnStrategy::SpawnMonster(CMonsterGenManager* pMgr, MONS
 
 	for (const auto& pSquare : pSquareArea.innerSquare) SpawnAt(pSquare.first, pSquare.second);
 	for (const auto& pSquare : pSquareArea.outerSquare) SpawnAt(pSquare.first, pSquare.second);
-	return true;
 }

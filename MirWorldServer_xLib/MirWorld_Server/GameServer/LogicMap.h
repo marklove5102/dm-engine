@@ -50,6 +50,8 @@ public:
 	}
 	CMapCellInfo** GetCellInfoBase() const { return m_pCellInfo.get(); }
 	// 内部方法：调用者需确保已持有 m_MapMutex 写锁
+	// 注意：内部分配 CellInfo 时会获取 m_xCellInfoPool 的 m_PoolLock，
+	// 形成 m_MapMutex → m_PoolLock 的嵌套锁顺序，该顺序全局一致不会死锁。
 	CMapCellInfo* GetMapCellInfo_Safe(UINT x, UINT y)
 	{
 		if (m_pCellInfo == nullptr || !VerifyPos(x, y))return nullptr;
@@ -57,6 +59,8 @@ public:
 		if (*ppCellInfo == nullptr)
 		{
 			*ppCellInfo = m_xCellInfoPool.newObject();
+			if (*ppCellInfo == nullptr)
+				return nullptr;
 			(*ppCellInfo)->wEventFlag = 0;
 			(*ppCellInfo)->wFlag = 0;
 			(*ppCellInfo)->m_pVisibleEventCache = nullptr;
@@ -102,6 +106,7 @@ public:
 	{
 		int itype = (int)type;
 		if (itype < 0 || itype >= OBJ_MAX)return 0;
+		SRLock lock(m_MapMutex);
 		return m_iObjectCount[type];
 	}
 	BOOL IsPhysicsBlocked(int x, int y)
@@ -115,15 +120,11 @@ public:
 		SRLock lock(m_MapMutex);
 		CMapCellInfo* pInfo = GetMapCellInfo(x, y);
 		if (pInfo == nullptr) return FALSE;
-		if (pInfo)
+		xListHelper<CMapObject> helper(&pInfo->m_xObjectList);
+		for (CMapObject* pObj = helper.first(); pObj != nullptr; pObj = helper.next())
 		{
-			xListHost<CMapObject>::xListNode* pNode = pInfo->m_xObjectList.getHead();
-			while (pNode)
-			{
-				if (pNode->getObject() && pNode->getObject()->GetType() == type)
-					return TRUE;
-				pNode = pNode->getNext();
-			}
+			if (pObj && pObj->GetType() == type)
+				return TRUE;
 		}
 		return FALSE;
 	}
@@ -258,7 +259,7 @@ private:
 	}
 private:
 	xStatus	m_Flag;
-	SmallFlatMap<int, std::vector<std::string>, 32> m_flagExtraParams; // 栈存储替代 unordered_map
+	SmallFlatMap<int, std::vector<std::string>, 32> m_flagExtraParams;
 	int	m_nIndex;
 	DWORD* m_pLockLayer;
 	int m_iMaxBlockElements;

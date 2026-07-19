@@ -12,14 +12,14 @@ VOID CHumanPlayer::ReviewAroundNameColor()
 	//if( InCityArea() )
 	//	btEnemy = 0xff, btAlly = 0xff;   
 	SendMsg(GetId(), 0x2a, GetNameColor(this), 0, 0, (LPVOID)GetViewName());
-	xListHost<VISIBLE_OBJECT>::xListNode* pNode = this->m_xVisibleObjectList.getHead();
-	while (pNode)
+	xListHelper<VISIBLE_OBJECT> helper(&this->m_xVisibleObjectList);
+	for (VISIBLE_OBJECT* pVo = helper.first(); pVo != nullptr; pVo = helper.next())
 	{
-		if (pNode->getObject() &&
-		pNode->getObject()->pObject &&
-		pNode->getObject()->pObject->GetType() == OBJ_PLAYER)
+		if (pVo &&
+		pVo->pObject &&
+		pVo->pObject->GetType() == OBJ_PLAYER)
 		{
-			CHumanPlayer* p = (CHumanPlayer*)pNode->getObject()->pObject;
+			CHumanPlayer* p = (CHumanPlayer*)pVo->pObject;
 			if (p->GetGuild())
 			{
 				//if( pGuild->IsKillGuild( p->GetGuild() ) )
@@ -28,6 +28,5 @@ VOID CHumanPlayer::ReviewAroundNameColor()
 				//	SendMsg( p->GetId(), 0x290, p->GetNameColor( this ), 0, 0 );
 			}
 		}
-		pNode = pNode->getNext();
 	}
 }

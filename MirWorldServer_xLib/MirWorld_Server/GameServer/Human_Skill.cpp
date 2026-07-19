@@ -37,19 +37,18 @@ VOID CHumanPlayer::SendSpecialStatusChanged(BOOL bToAround)
 VOID CHumanPlayer::resetHushenBuff(int x, int y, UINT nTarget, WORD wMagicId)
 {
 	USERMAGIC* pMagic = GetMagic(wMagicId);
-	int hushenLevel = GetShieldState()->hushenLevel;
 	switch (wMagicId)
 	{
 	case 42: // 护身真气
 	{
-		SendAroundMsg(GetId(), 0x1d, this->m_xAbilityShellRef.wCurHp, this->m_xAbilityShellRef.pShell->wMaxHp, hushenbuff[hushenLevel]);
-		SendMsg(GetId(), 0x1d, this->m_xAbilityShellRef.wCurHp, this->m_xAbilityShellRef.pShell->wMaxHp, hushenbuff[hushenLevel]);
+		SendAroundMsg(GetId(), 0x1d, this->m_xAbilityShellRef.wCurHp, this->m_xAbilityShellRef.pShell->wMaxHp, hushenbuff[hushenleve]);
+		SendMsg(GetId(), 0x1d, this->m_xAbilityShellRef.wCurHp, this->m_xAbilityShellRef.pShell->wMaxHp, hushenbuff[hushenleve]);
 	}
 	break;
 	case 61: // 金刚护体
 	{
-		SendAroundMsg(GetId(), 0x1d, this->m_xAbilityShellRef.wCurHp, this->m_xAbilityShellRef.pShell->wMaxHp, hushenbuff[hushenLevel]);
-		SendMsg(GetId(), 0x1d, this->m_xAbilityShellRef.wCurHp, this->m_xAbilityShellRef.pShell->wMaxHp, hushenbuff[hushenLevel]);
+		SendAroundMsg(GetId(), 0x1d, this->m_xAbilityShellRef.wCurHp, this->m_xAbilityShellRef.pShell->wMaxHp, hushenbuff[hushenleve]);
+		SendMsg(GetId(), 0x1d, this->m_xAbilityShellRef.wCurHp, this->m_xAbilityShellRef.pShell->wMaxHp, hushenbuff[hushenleve]);
 	}
 	break;
 	}
@@ -208,7 +207,6 @@ BOOL CHumanPlayer::SpellCast(int x, int y, UINT nTarget, WORD wMagicId)
 				}
 				else if (hasItem1 && hasItem2)
 				{
-					BOOL boPoison = GetShieldState()->poisonToggle;
 					needitem = boPoison ? item1 : item2;
 					checkcount++;
 				}
@@ -275,7 +273,7 @@ BOOL CHumanPlayer::SpellCast(int x, int y, UINT nTarget, WORD wMagicId)
 				this->m_xAbilityShellRef.wCurHp = magicSkill.skills[index].value3 * 10;
 				this->m_xAbilityShellRef.wLevel = index;
 				this->m_xAbilityShellRef.wSkillId = wMagicId;
-				GetShieldState()->hushenLevel = index;
+				hushenleve = index;
 				SendAroundMsg(GetId(), 0x1d, this->m_xAbilityShellRef.wCurHp, this->m_xAbilityShellRef.pShell->wMaxHp, hushenbuff[index]);
 				SendMsg(GetId(), 0x1d, this->m_xAbilityShellRef.wCurHp, this->m_xAbilityShellRef.pShell->wMaxHp, hushenbuff[index]);
 				UpdateProp(); // 更新人物数据
@@ -317,8 +315,8 @@ BOOL CHumanPlayer::SpellCast(int x, int y, UINT nTarget, WORD wMagicId)
 				this->m_xAbilityShellRef.wCurHp = magicSkill.skills[index].value5 * 10;
 				this->m_xAbilityShellRef.wLevel = index;
 				this->m_xAbilityShellRef.wSkillId = wMagicId;
-				GetShieldState()->hushenLevel = index;
-				GetShieldState()->jingangNoDamage = magicSkill.skills[index].value6;
+				hushenleve = index;
+				JingganNoDamage = magicSkill.skills[index].value6;
 				SendAroundMsg(GetId(), 0x1d, this->m_xAbilityShellRef.wCurHp, this->m_xAbilityShellRef.pShell->wMaxHp, hushenbuff[index]);
 				SendMsg(GetId(), 0x1d, this->m_xAbilityShellRef.wCurHp, this->m_xAbilityShellRef.pShell->wMaxHp, hushenbuff[index]);
 				SetSystemFlag(SF_STRONGSHIELD, TRUE, btLevel, 0xffffffff);
@@ -409,6 +407,8 @@ BOOL CHumanPlayer::SpellCast(int x, int y, UINT nTarget, WORD wMagicId)
 					SaySystemAttrib(CC_GREENS, "关闭%s", szName);
 				return TRUE;
 			}
+			else
+				DPRINT(ERROR_RED, "未处理的技能 %u \n", wMagicId);
 		}
 		break;
 		}
@@ -630,10 +630,8 @@ BOOL CHumanPlayer::SpellCast(int x, int y, UINT nTarget, WORD wMagicId)
 		break;
 		case 31: // 魔法盾
 		{
-			// 魔法盾抵抗次数
-			GetShieldState()->magShieldResCount = skillData.value2 * skillData.value5;
-			// 魔法盾抵抗百分比
-			GetShieldState()->magShieldNoDamage = skillData.value3;
+			ResMag_Count = skillData.value2 * skillData.value5; // 魔法盾抵抗次数
+			NoDamage = skillData.value3; // 魔法盾抵抗百分比
 			const int pow = skillData.value1;
 			const int time = skillData.value4;
 			const DWORD dwTime = static_cast<DWORD>(pow * time);
@@ -1364,19 +1362,19 @@ BOOL CHumanPlayer::SpellCast(int x, int y, UINT nTarget, WORD wMagicId)
 				break;
 			case SNI_GREENPOISON: // 绿毒
 				TakeMaterial(ISM_POISON, 1, 0, pMagic->pClass->wGreenPoisonCount);
-				GetShieldState()->poisonToggle = FALSE;
+				boPoison = FALSE;
 				break;
 			case SNI_REDPOISON: // 红毒
 				TakeMaterial(ISM_POISON, 2, 0, pMagic->pClass->wRedPoisonCount);
-				GetShieldState()->poisonToggle = TRUE;
+				boPoison = TRUE;
 				break;
 			case SNI_STRAWMAN: // 诅咒木偶男
 				TakeMaterial(ISM_POISON, 1, 1, pMagic->pClass->wStrawManCount);
-				GetShieldState()->poisonToggle = FALSE;
+				boPoison = FALSE;
 				break;
 			case SNI_STRAWWOMAN: // 诅咒木偶女
 				TakeMaterial(ISM_POISON, 2, 1, pMagic->pClass->wStrawWomanCount);
-				GetShieldState()->poisonToggle = TRUE;
+				boPoison = TRUE;
 				break;
 			}
 		}
@@ -1510,10 +1508,7 @@ BOOL CHumanPlayer::SpecialHit(int dir, WORD wSkillId)
 	// 统一计算百分比伤害的辅助函数
 	auto CalculateBonusDamage = [this](int basePower, WORD skillId) -> int {
 		const Magic& magicskill = CMagicManager::GetInstance()->GetMagic(skillId);
-		const USERMAGIC* pUserMagic = this->GetMagic(skillId);
-		if (pUserMagic == nullptr) return 0;
-		const BYTE btLevel = pUserMagic->magic.btLevel;
-		const int pow = magicskill.skills[btLevel].value3;
+		const int pow = magicskill.skills[this->GetMagic(skillId)->magic.btLevel].value3;
 		const double powerMultiplier = pow / 100.0;
 		return static_cast<int>(basePower * powerMultiplier);
 	};
@@ -1714,6 +1709,7 @@ BOOL CHumanPlayer::SpecialHit(int dir, WORD wSkillId)
 	// 保存技能时间
 	if (bSaveSkillTime)
 	{
+		m_tmrSpecialAttackSkill.Savetime();
 		m_tmrAttack.Savetime();
 	}
 	if (SendBUF)
@@ -1727,7 +1723,7 @@ BOOL CHumanPlayer::SpecialHit(int dir, WORD wSkillId)
 VOID CHumanPlayer::OnDamage(CAliveObject* pAttacker, int nDamage, damage_type type)
 {
 	int nDuraDamage = nDamage;
-	GetShieldState()->hushenBuffDamage += nDamage;
+	HushenBuffdamage += nDamage;
 	int dressrate = CGameWorld::GetInstance()->GetVar(EVI_DRESSDAMAGERATE);
 	int defencerate = CGameWorld::GetInstance()->GetVar(EVI_DEFENCEDAMAGERATE);
 	int jewrate = CGameWorld::GetInstance()->GetVar(EVI_JEWELRYDAMAGERATE);
@@ -1774,24 +1770,22 @@ VOID CHumanPlayer::OnDamage(CAliveObject* pAttacker, int nDamage, damage_type ty
 	{
 		//这个变量用来确定发送29
 		BOOL  ISsendBuf = FALSE;
-		auto* ss = GetShieldState();
-		if (ss->hushenBuffDamage > 50)
+		if (HushenBuffdamage > 50)
 		{
-			ss->hushenBuffDamage -= 50;
+			HushenBuffdamage -= 50;
 			ISsendBuf = TRUE;
 			this->m_xAbilityShellRef.wCurHp--;
 		}
 		if (ISsendBuf)
 		{
-			int hushenLevel = GetShieldState()->hushenLevel;
-			SendAroundMsg(GetId(), 0x1d, this->m_xAbilityShellRef.wCurHp, this->m_xAbilityShellRef.pShell->wMaxHp, hushenbuff[hushenLevel]);
-			SendMsg(GetId(), 0x1d, this->m_xAbilityShellRef.wCurHp, this->m_xAbilityShellRef.pShell->wMaxHp, hushenbuff[hushenLevel]);
+			SendAroundMsg(GetId(), 0x1d, this->m_xAbilityShellRef.wCurHp, this->m_xAbilityShellRef.pShell->wMaxHp, hushenbuff[hushenleve]);
+			SendMsg(GetId(), 0x1d, this->m_xAbilityShellRef.wCurHp, this->m_xAbilityShellRef.pShell->wMaxHp, hushenbuff[hushenleve]);
 		}
 		if (this->m_xAbilityShellRef.wCurHp == 0)
 		{
 			this->m_xAbilityShellRef.pShell = nullptr;
 			//去掉SHELL影响
-			ss->hushenBuffDamage = 0;
+			HushenBuffdamage = 0;
 			if (CAliveObject::IsStatusSet(SI_HUSHENZHENQI))
 			{
 				CAliveObject::ClrStatus(SI_HUSHENZHENQI);
@@ -1814,7 +1808,7 @@ BOOL CHumanPlayer::CanBePushed(CAliveObject* pAttacker)
 	if (GetActionType() == AT_PRIVATESHOP)return FALSE;
 	if (CAliveObject::CanBePushed(pAttacker))return TRUE;
 	if (pAttacker->GetType() == OBJ_PLAYER)
-		return (((CHumanPlayer*)pAttacker)->_currentTitleIndex() > _currentTitleIndex());
+		return (((CHumanPlayer*)pAttacker)->m_iCurrentTitleIndex > m_iCurrentTitleIndex);
 	return FALSE;
 }
 
@@ -1830,20 +1824,24 @@ VOID CHumanPlayer::OnKillTarget(CAliveObject* pTarget)
 	if (pTarget && pTarget->GetType() == OBJ_MONSTER && GetPro() == JOB_MAG)
 	{
 		USERMAGIC* pMagic = GetMagic(76);
-		if (pMagic && Getrand(100) < (20 + pMagic->magic.btLevel * 20))
+		if (pMagic)
 		{
-			int level = pTarget->GetPropValue(PI_LEVEL);
-			AddMp(level);
-			SaySystem( "怪物的魂魄化作魔力注入你的体内, 吸收到%u点魔法值", level );
-			TrainMagic(pMagic);
+			const Magic& magicSkill = CMagicManager::GetInstance()->GetMagic(76);
+			const BYTE btLevel = pMagic->magic.btLevel;
+			const int nProbability = magicSkill.skills[btLevel].value2;
+			const int nMpRestore = magicSkill.skills[btLevel].value1;
+			if (Getrand(100) < nProbability)
+			{
+				AddMp(nMpRestore);
+				SaySystem("怪物的魂魄化作魔力注入你的体内, 吸收到%u点魔法值", nMpRestore);
+				TrainMagic(pMagic);
+			}
 		}
 	}
 }
 
 BOOL CHumanPlayer::RemoveMagic(const char* pszMagic)
 {
-	USERMAGIC* pMagic = m_pMagic;
-	USERMAGIC* p = m_pMagic;
 	MAGICCLASS* pClass = CMagicManager::GetInstance()->GetClassByName(pszMagic);
 	if (pClass == nullptr)return FALSE;
 	return RemoveMagic(pClass->id);
@@ -1851,23 +1849,15 @@ BOOL CHumanPlayer::RemoveMagic(const char* pszMagic)
 
 BOOL CHumanPlayer::RemoveMagic(UINT nMagicId)
 {
-	USERMAGIC* pMagic = m_pMagic;
-	USERMAGIC* p = m_pMagic;
-	while (pMagic)
+	for (auto it = m_vMagic.begin(); it != m_vMagic.end(); ++it)
 	{
-		if (pMagic->pClass->id == nMagicId)
+		if ((*it)->pClass->id == nMagicId)
 		{
-			if (pMagic == m_pMagic)
-				m_pMagic = pMagic->pNext;
-			else
-				p->pNext = pMagic->pNext;
-			CGameWorld::GetInstance()->FreeUserMagic(pMagic);
+			m_vMagic.erase(it);
 			SendMsg(nMagicId, 0xd4, 0, 0, 0);
 			CMagicManager::GetInstance()->DeleteMagicFromDB(GetDBId(), nMagicId);
 			return TRUE;
 		}
-		p = pMagic;
-		pMagic = pMagic->pNext;
 	}
 	return FALSE;
 }

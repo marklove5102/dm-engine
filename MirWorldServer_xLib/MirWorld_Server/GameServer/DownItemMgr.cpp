@@ -19,19 +19,13 @@ CDownItemMgr::~CDownItemMgr(VOID)
 CDownItemObject* CDownItemMgr::newObject()
 {
 	CDownItemObject* p = m_xDownItemPool.newObject();
-	if (p == nullptr)
-	{
-		PRINT(ERROR_RED, "掉落物品对象池耗尽! 当前活跃物品数：%d\n", m_xDownItemList.getCount());
-		return nullptr;
-	}
+	if (p == nullptr)return p;
 	UINT id = m_xDownItemList.addObject(p);
 	if (id == 0)
 	{
-		PRINT(ERROR_RED, "掉落物品列表已满! 当前数量：%d/400000\n", m_xDownItemList.getCount());
 		m_xDownItemPool.deleteObject(p);
 		return nullptr;
 	}
-	id |= (OBJ_DOWNITEM << 24);
 	p->SetId(id);
 	return p;
 }
@@ -40,7 +34,7 @@ VOID CDownItemMgr::deleteObject(CDownItemObject* p)
 {
 	UINT id = p->GetId();
 	p->Clean();
-	m_xDownItemList.delObject(id & 0xffffff);
+	m_xDownItemList.delObject(id);
 	m_xDownItemPool.deleteObject(p);
 }
 

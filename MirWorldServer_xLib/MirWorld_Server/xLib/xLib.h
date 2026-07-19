@@ -10,7 +10,6 @@
 #include ".\header\xThread.h"
 #include ".\header\xIndexObject.h"
 #include ".\header\xIndexObjectPool.h"
-#include ".\header\xMTVerify.h"
 #include ".\header\xIndexPtrList.h"
 #include ".\header\xNameCheck.h"
 #include ".\header\xPacket.h"

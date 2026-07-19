@@ -143,7 +143,7 @@ VOID CMarketManager::OpenMarket(CHumanPlayer* pPlayer)
 		if (pItem)
 		{
 			//&50101266|825|100|灵符(包)|5
-			sprintf((char*)packet->getfreebuf(), "%u%u%u|%u|100|%s|%u&",
+			snprintf((char*)packet->getfreebuf(), 65535 - packet->getsize(), "%u%u%u|%u|100|%s|%u&",
 				pItem->nMarketId, pItem->nSubMarketId, pItem->nId, pItem->nImage, pItem->szName.data(), pItem->wPrice);
 			packet->addsize((int)strlen(packet->getfreebuf()));
 		}
@@ -163,7 +163,7 @@ VOID CMarketManager::QueryMarket(CHumanPlayer* pPlayer, UINT nMarketId)
 	else
 	{
 		char szError[200];
-		sprintf(szError, "%u该商城道具不存在", nMarketId);
+		snprintf(szError, 200, "%u该商城道具不存在", nMarketId);
 		pPlayer->SendMsg(pPlayer->GetId(), 0x1000, 2, 1, 0, (LPVOID)szError);
 	}
 }
@@ -174,7 +174,7 @@ VOID CMarketManager::QueryItemTips(CHumanPlayer* pPlayer, UINT nItemId)
 	xPacketPool::ScopedPacket packet(65535);
 	if (pItem)
 	{
-		sprintf((char*)packet->getbuf(), "%u&", pItem->nId);
+		snprintf((char*)packet->getbuf(), 65535, "%u&", pItem->nId);
 		packet->addsize((int)strlen(packet->getbuf()));
 		packet->push((LPVOID)pItem->pszTips, (int)strlen(pItem->pszTips));
 		pPlayer->SendMsg(pPlayer->GetId(), 0x1000, 4, 0, 0, (LPVOID)packet->getbuf(), packet->getsize());

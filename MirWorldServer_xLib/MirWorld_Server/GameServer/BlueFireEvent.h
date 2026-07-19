@@ -13,13 +13,13 @@ public:
 	CBlueFireEvent(const CBlueFireEvent&) = delete;           // 禁止拷贝构造
 	CBlueFireEvent& operator=(const CBlueFireEvent&) = delete; // 禁止拷贝赋值
 	// 事件更新处理
-	VOID OnUpdate(CVisibleEvent* pEvent);
+	VOID OnUpdate(CVisibleEvent* pEvent) override;
 	// 事件关闭处理
-	VOID OnClose(CVisibleEvent* pEvent);
+	VOID OnClose(CVisibleEvent* pEvent) override;
 	// 销毁蓝色火焰燃烧事件
 	VOID Destroy();
 	// 更新事件状态
-	VOID Update();
+	VOID Update() override;
 	//VOID OnEnter( CVisibleEvent * pEvent, CMapObject * pObject );
 	//VOID OnCreate( CVisibleEvent * pEvent );
 

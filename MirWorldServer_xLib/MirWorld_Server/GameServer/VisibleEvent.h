@@ -37,7 +37,7 @@ public:
 	 * @param pViewer 观察者对象
 	 * @return BOOL 是否成功获取消息
 	 */
-	BOOL GetViewmsg(char* pszMsg, int& length, CMapObject* pViewer = nullptr);
+	BOOL GetViewmsg(char* pszMsg, int& length, CMapObject* pViewer = nullptr) override;
 	/**
 	 * 获取离开视野消息
 	 * @param pszMsg 消息缓冲区
@@ -45,17 +45,17 @@ public:
 	 * @param pViewer 观察者对象
 	 * @return BOOL 是否成功获取消息
 	 */
-	BOOL GetOutViewmsg(char* pszMsg, int& length, CMapObject* pViewer = nullptr);
+	BOOL GetOutViewmsg(char* pszMsg, int& length, CMapObject* pViewer = nullptr) override;
 	// 获取对象类型
-	e_object_type GetType() { return OBJ_VISIBLEEVENT; }
+	e_object_type GetType() override { return OBJ_VISIBLEEVENT; }
 	// 当对象进入事件范围时触发
-	VOID OnEnter(CMapObject* pObject);
+	VOID OnEnter(CMapObject* pObject) override;
 	// 当对象离开事件范围时触发
-	VOID OnLeave(CMapObject* pObject);
+	VOID OnLeave(CMapObject* pObject) override;
 	// 当事件进入地图时触发
-	VOID OnEnterMap(CLogicMap* pMap);
+	VOID OnEnterMap(CLogicMap* pMap) override;
 	// 当事件离开地图时触发
-	VOID OnLeaveMap(CLogicMap* pMap);
+	VOID OnLeaveMap(CLogicMap* pMap) override;
 	// 更新事件有效性
 	BOOL UpdateValid();
 	// 设置事件参数

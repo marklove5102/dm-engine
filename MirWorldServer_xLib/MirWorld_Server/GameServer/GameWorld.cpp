@@ -1,5 +1,6 @@
 #include "StdAfx.h"
 #include ".\gameworld.h"
+#include <algorithm>
 #include <unordered_map>
 #include "physicsmapmgr.h"
 #include "logicmapmgr.h"
@@ -19,8 +20,6 @@
 #include "BundleManager.h"
 #include "eventmanager.h"
 #include "BossTJ.h"
-#include "PlayerComponentManager.h"
-#include "AliveComponentsManager.h"
 #include "TimeAchieve.h"
 #include "GameStage.h"
 #include "guildex.h"
@@ -66,14 +65,14 @@ CGameWorld::CGameWorld(VOID) :
 	m_VarList.fill(0);
 	m_dwChannelTime.fill(0);
 	m_iBornPointCount.fill(0);
-	
+
 	for (auto& arr : m_HumanData) {
 		arr.fill({});
 	}
 	for (auto& line : m_NoticeLines) {
 		line = {};
 	}
-	
+
 	memset(&m_FirstLoginInfo, 0, sizeof(m_FirstLoginInfo));
 
 	m_pObjectList[OBJ_MONSTER] = std::make_unique<MAPOBJECT_LIST>();
@@ -209,7 +208,7 @@ BOOL CGameWorld::LoadServerConfig()
 	m_VarList[EVI_MAXGOLD] = (DWORD)m_sfServer.GetInteger("Var", "MaxGold", 5000000);
 	m_VarList[EVI_MAXBIGGOLD] = (DWORD)m_sfServer.GetInteger("Var", "MaxBigGold", 10000000);
 	m_VarList[EVI_MAXYUANBAO] = (DWORD)m_sfServer.GetInteger("Var", "MaxYuanBao", 2000);
-	m_VarList[EVI_ITEMUPDATETIME] = (DWORD)m_sfServer.GetInteger("Var", "ItemUpdateTime", 300) * 1000;
+	m_VarList[EVI_ITEMUPDATETIME] = (DWORD)m_sfServer.GetInteger("Var", "ItemUpdateTime", 60) * 1000;
 	m_VarList[EVI_MAXGROUPMEMBER] = (DWORD)m_sfServer.GetInteger("Var", "MaxGroupMember", 10);
 	m_VarList[EVI_REDPKPOINT] = (DWORD)m_sfServer.GetInteger("Var", "RedPkPoint", 12);
 	m_VarList[EVI_YELLOWPKPOINT] = (DWORD)m_sfServer.GetInteger("Var", "YellowPkPoint", 6);
@@ -325,7 +324,7 @@ BOOL CGameWorld::LoadServerConfig()
 				pItem->btSex = 99;
 				pItem->boBind = 1;
 			}
-			else if(nParam2 <= 3)
+			else if (nParam2 <= 3)
 			{
 				pItem->nCount = StringToInteger(Params2[1]);
 				pItem->btJob = StringToInteger(Params2[2]);
@@ -419,9 +418,9 @@ VOID CGameWorld::LoadStartPoint()
 		m_BornPoints[1].reset();
 		m_BornPoints[2].reset();
 
-		m_BornPoints[0] = std::make_unique<START_POINT*[]>(m_iBornPointCount[0]);
-		m_BornPoints[1] = std::make_unique<START_POINT*[]>(m_iBornPointCount[1]);
-		m_BornPoints[2] = std::make_unique<START_POINT*[]>(m_iBornPointCount[2]);
+		m_BornPoints[0] = std::make_unique<START_POINT * []>(m_iBornPointCount[0]);
+		m_BornPoints[1] = std::make_unique<START_POINT * []>(m_iBornPointCount[1]);
+		m_BornPoints[2] = std::make_unique<START_POINT * []>(m_iBornPointCount[2]);
 		m_iBornPointCount[0] = 0;
 		m_iBornPointCount[1] = 0;
 		m_iBornPointCount[2] = 0;
@@ -501,8 +500,8 @@ VOID CGameWorld::LoadNotice()
 VOID CGameWorld::LoadClientKeyConfig()
 {
 	m_ClientKeyConfig.fill({});
-	FILE* fp = fopen(".\\Data\\Config\\ClientKeyConfig.json", "rb");
-	if (fp == nullptr)
+	FileGuard fp(fopen(".\\Data\\Config\\ClientKeyConfig.json", "rb"));
+	if (!fp)
 	{
 		PRINT(ERROR_RED, "无法打开 ClientKeyConfig.json 文件\n");
 		return;
@@ -511,7 +510,7 @@ VOID CGameWorld::LoadClientKeyConfig()
 	rapidjson::FileReadStream is(fp, readBuffer.data(), readBuffer.size());
 	rapidjson::Document doc;
 	doc.ParseStream(is);
-	fclose(fp);
+	// fclose 由 FileGuard 析构自动完成 (延迟到作用域结束, doc 已解析完毕, 无影响)
 	if (doc.HasParseError())
 	{
 		PRINT(ERROR_RED, "ClientKeyConfig.json 解析错误: %d\n", doc.GetParseError());
@@ -622,7 +621,7 @@ VOID CGameWorld::InitThreadPool()
 	}
 	// 动态线程数 - 根据CPU核心数决定，上限32
 	int cpuCores = std::thread::hardware_concurrency();
-	int threadCount = MIN(MAX(cpuCores, 4), 32); // 4-32个线程
+	int threadCount = MIN(cpuCores, 32); // 不超过物理核心数, 上限16 (减少空闲线程开销)
 	PRINT(ORANGE, "检测到 %d 个CPU核心，初始化 %d 个工作线程\n", cpuCores, threadCount);
 
 	for (int i = 0; i < threadCount; ++i)
@@ -635,10 +634,10 @@ VOID CGameWorld::InitThreadPool()
 			if (systemMask & (DWORD_PTR(1) << j))
 			{
 				if (coreNum == (i % activeCoreCount))
-					{
-						assignedCore = j;
-						break;
-					}
+				{
+					assignedCore = j;
+					break;
+				}
 				coreNum++;
 			}
 		}
@@ -743,61 +742,26 @@ VOID CGameWorld::Update()
 	break;
 	case 2: case 7:
 	{
-		CSpinBarrier barrier(5); // 5个异步任务参与
-		SubmitAsyncTask([&barrier]() {
-			CTimeSystem::GetInstance()->Update(); // 时间定时器
-			barrier.Signal();
-			});
-		SubmitAsyncTask([&barrier]() {
-			CBossTJ::GetInstance()->Update(); // Boss图鉴刷新时间更新
-			barrier.Signal();
-		});
-		SubmitAsyncTask([&barrier]() {
-			CEventManager::GetInstance()->UpdateEvents();
-			barrier.Signal();
-		});
-		SubmitAsyncTask([&barrier]() {
-			CDownItemMgr::GetInstance()->UpdateDownItem();//更新掉落物品
-			barrier.Signal();
-		});
-		SubmitAsyncTask([&barrier]() {
-			CMonsterManagerEx::GetInstance()->UpdateFreeObjects(); // 释放
-			barrier.Signal();
-		});
-		if (!barrier.Arrive(5000))
-		{
-			assert(!"Update: worker tasks did not complete within 5s timeout");
-		}
-		CEventManager::GetInstance()->UpdateDeleteObject();
-		CDownItemMgr::GetInstance()->UpdateDeletedObject();
-		CMonsterManagerEx::GetInstance()->UpdateDeleteMonster(); // 删除
+		CTimeSystem::GetInstance()->Update(); // 时间定时器
+		CBossTJ::GetInstance()->Update(); // Boss图鉴刷新时间更新
+		CEventManager::GetInstance()->UpdateEvents();
+		CDownItemMgr::GetInstance()->UpdateDownItem();//更新掉落物品
+		CMonsterManagerEx::GetInstance()->UpdateFreeObjects(); // 释放
 	}
 	break;
 	case 3: case 8:
 	{
-		CSpinBarrier barrier(4); // 4个异步任务参与
-		SubmitAsyncTask([&barrier]() {
-			CSandCity* pSandCity = CSandCity::GetInstance();
-			if (pSandCity && pSandCity->IsWarStarted())
-				CSandCity::GetInstance()->UpdateWar();
-			barrier.Signal();
-			});
-		SubmitAsyncTask([&barrier]() {
-			CGuildWarManager::GetInstance()->Update();
-			barrier.Signal();
-			});
-		SubmitAsyncTask([&barrier]() {
-			CNpcManager::GetInstance()->Update(); // NPC线程
-			barrier.Signal();
-			});
-		SubmitAsyncTask([&barrier]() {
-			CMonsterGenManager::GetInstance()->UpdateGen(); // 刷怪
-			barrier.Signal();
-		});
-		if (!barrier.Arrive(5000))
-		{
-			assert(!"UpdatePlayers: worker tasks did not complete within 5s timeout");
-		}
+		CSandCity* pSandCity = CSandCity::GetInstance();
+		if (pSandCity && pSandCity->IsWarStarted())
+			CSandCity::GetInstance()->UpdateWar();
+		CGuildWarManager::GetInstance()->Update();
+
+		CNpcManager::GetInstance()->Update(); // NPC线程
+		CMonsterGenManager::GetInstance()->UpdateGen(); // 刷怪
+
+		CEventManager::GetInstance()->UpdateDeleteObject();
+		CDownItemMgr::GetInstance()->UpdateDeletedObject();
+		CMonsterManagerEx::GetInstance()->UpdateDeleteMonster(); // 删除
 	}
 	break;
 	case 6: case 9:
@@ -826,7 +790,7 @@ VOID CGameWorld::Update()
 				m_iNoticePtr = (m_iNoticePtr + 1) % m_iNoticeLines;
 				m_LineNoticeTimer.Savetime();
 			}
-		});
+			});
 	}
 	break;
 	}
@@ -919,9 +883,11 @@ BOOL CGameWorld::AddMapObject(CMapObject* pObject)
 
 BOOL CGameWorld::RemoveMapObject(CMapObject* pObject)
 {
+	// 从地图移除（如果还在图上的话）
 	CLogicMap* pMap = pObject->GetMap();
 	if (pMap != nullptr)
 		pMap->RemoveObject(pObject);
+	// 从世界级对象列表移除！
 	if (pObject->GetType() < OBJ_MAX)
 	{
 		MAPOBJECT_LIST* pList = m_pObjectList[pObject->GetType()].get();
@@ -931,6 +897,7 @@ BOOL CGameWorld::RemoveMapObject(CMapObject* pObject)
 			pList->removeNode(pObject->GetLinkNode(LNI_WORLD));
 		}
 	}
+	// 怪物特殊：发送消失消息
 	if (pObject->GetType() == OBJ_MONSTER)
 	{
 		std::array<char, 1024> szBuffer{};
@@ -1004,19 +971,6 @@ CAliveObject* CGameWorld::GetAliveObjectById(UINT id)
 		return (CAliveObject*)CHumanPlayerMgr::GetInstance()->FindbyId(id);
 	}
 	return nullptr;
-}
-
-USERMAGIC* CGameWorld::AllocUserMagic()
-{
-	USERMAGIC* p = m_UserMagicPool.newObject();
-	if (p)
-		memset(p, 0, sizeof(*p));
-	return p;
-}
-
-VOID CGameWorld::FreeUserMagic(USERMAGIC* p)
-{
-	m_UserMagicPool.deleteObject(p);
 }
 
 BOOL CGameWorld::GetBornPoint(int pro, int& mapid, int& x, int& y, char* pszName)
@@ -1229,11 +1183,25 @@ VOID CGameWorld::UpdateMonsterParallel(xListHost<CMonsterEx>& monsterList, Monst
 	// 避免跨线程并发修改同一地图内玩家的可见对象列表(m_mapVisibleObject/m_xVisibleObjectList)
 	std::sort(validMonsters.begin(), validMonsters.end(), [](CMonsterEx* a, CMonsterEx* b) {
 		return a->GetMapId() < b->GetMapId();
-	});
+		});
 
-	// 按批次并行怪物 AI 更新（无锁，每批次独立收集切换节点）
+	// 按 mapId 边界切批: 保证同地图怪物在同一批次同一线程, 满足"地图内串行"契约。
+	// 策略A: 单地图怪物数 > nBatchSize 时独占一批不拆分。
 	int totalMonsters = (int)validMonsters.size();
-	int numBatches = (totalMonsters + nBatchSize - 1) / nBatchSize;
+	std::vector<std::pair<int, int>> batchRanges;  // {start, end}
+	{
+		int batchStart = 0;
+		for (int i = 1; i <= totalMonsters; ++i)
+		{
+			if (i == totalMonsters || validMonsters[i]->GetMapId() != validMonsters[batchStart]->GetMapId())
+			{
+				batchRanges.push_back({ batchStart, i });
+				batchStart = i;
+			}
+		}
+	}
+	int numBatches = (int)batchRanges.size();
+
 	DWORD dwUpdateKey = m_dwUpdateKey;
 	BOOL checkHasTarget = (updateType == MUT_AUTO);
 
@@ -1246,8 +1214,8 @@ VOID CGameWorld::UpdateMonsterParallel(xListHost<CMonsterEx>& monsterList, Monst
 	CSpinBarrier barrier(numBatches);
 	for (int batch = 0; batch < numBatches; batch++)
 	{
-		int start = batch * nBatchSize;
-		int end = MIN((batch + 1) * nBatchSize, totalMonsters);
+		int start = batchRanges[batch].first;
+		int end = batchRanges[batch].second;
 		SubmitAsyncTask([&barrier, &validMonsters, &batchSwitchNodes, pTargetList, start, end, dwUpdateKey, checkHasTarget, batch]() {
 			auto& switchNodes = batchSwitchNodes[batch];
 			xListHost<CMonsterEx>& targetList = *pTargetList;
@@ -1270,7 +1238,7 @@ VOID CGameWorld::UpdateMonsterParallel(xListHost<CMonsterEx>& monsterList, Monst
 				}
 			}
 			barrier.Signal();
-		});
+			});
 	}
 	// 3秒超时：若工作线程异常未能Signal，避免主线程永久卡死
 	if (!barrier.Arrive(5000))
@@ -1332,7 +1300,7 @@ VOID CGameWorld::UpdatePlayers()
 	// 定义处理单个玩家的逻辑
 	// 线程安全说明：按地图分组确保同一地图的玩家在同一线程处理，
 	// 避免跨地图共享状态冲突。ProcessPlayer内不应访问其他地图对象。
-	auto ProcessPlayer = [needGlobeProcess, pProcesses, globeprocesscount, dwUpdateKey](CHumanPlayer* p) {
+	auto ProcessPlayer = [needGlobeProcess, &pProcesses, globeprocesscount, dwUpdateKey](CHumanPlayer* p) {
 		if (needGlobeProcess && p->NeedGlobeProcess(UPDATE_GLOBE_PROCESS_COUNT))
 		{
 			for (int j = 0; j < globeprocesscount; j++)
@@ -1344,7 +1312,7 @@ VOID CGameWorld::UpdatePlayers()
 		}
 		p->SetUpdateKey(dwUpdateKey);
 		p->Update();
-	};
+		};
 	// 按地图分组进行并行处理
 	struct MapGroup {
 		std::vector<CHumanPlayer*> players;
@@ -1352,34 +1320,40 @@ VOID CGameWorld::UpdatePlayers()
 	struct MapGroupBuffers
 	{
 		std::vector<MapGroup> groups;
-		SmallFlatMap<UINT, size_t, 512> mapIndex;  // 地图分组索引 (栈存储, 替代 unordered_map)
 		VOID clear()
 		{
 			for (auto& g : groups) g.players.clear();
 			groups.clear();
-			mapIndex.clear();
 		}
 	};
 	static MapGroupBuffers mgBuf;
 	mgBuf.clear();
 	auto& groups = mgBuf.groups;
-	auto& mapIndex = mgBuf.mapIndex;
 	{
+		// 直接哈希桶分组: O(N)
+		// 4096桶, mapId & 0xFFF 取哈希, 线性探测处理冲突
+		// bucketMapId[b]=0 表示空桶, 否则存储实际 mapId; bucketGroup[b] 存储组索引
+		static std::array<UINT, 4096> bucketMapId{};
+		static std::array<int16_t, 4096> bucketGroup{};
+		bucketGroup.fill(-1);
+		int16_t nGroups = 0;
 		for (auto* p : ptls.players)
 		{
 			UINT mapId = p->GetMapId();
-			auto it = mapIndex.find(mapId);
-			if (it == mapIndex.end())
+			UINT bucket = mapId & 0xFFF;
+			while (bucketGroup[bucket] >= 0 && bucketMapId[bucket] != mapId)
+				bucket = (bucket + 1) & 0xFFF; // 线性探测
+			if (bucketGroup[bucket] >= 0)
 			{
-				size_t idx = groups.size();
-				mapIndex[mapId] = idx;
-				MapGroup g;
-				g.players.push_back(p);
-				groups.push_back(std::move(g));
+				groups[bucketGroup[bucket]].players.push_back(p);
 			}
 			else
 			{
-				groups[it->second].players.push_back(p);
+				bucketMapId[bucket] = mapId;
+				bucketGroup[bucket] = nGroups++;
+				MapGroup g;
+				g.players.push_back(p);
+				groups.push_back(std::move(g));
 			}
 		}
 	}
@@ -1418,7 +1392,7 @@ VOID CGameWorld::UpdatePlayers()
 						ProcessPlayer(p);
 					}
 					barrier.Signal();
-				});
+					});
 			}
 		}
 		// 主线程处理偷取的大分组

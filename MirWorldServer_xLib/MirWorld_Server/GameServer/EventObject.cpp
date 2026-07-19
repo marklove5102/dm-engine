@@ -38,15 +38,12 @@ VOID CEventObject::OnLeaveMap(CLogicMap* pMap)
 	CMapCellInfo* pInfo = pMap->GetMapCellInfoExclusive(m_wX, m_wY);
 	if (pInfo)
 	{
-		xListHost<CMapObject>::xListNode* pNode = pInfo->m_xObjectList.getHead();
-		CMapObject* pObject = nullptr;
+		xListHelper<CMapObject> helper(&pInfo->m_xObjectList);
 		int	count = 0;
 		if ((pInfo->wEventFlag & EVENTFLAG_ENTEREVENT) != 0 || (pInfo->wEventFlag & EVENTFLAG_LEAVEEVENT) != 0)
 		{
-			while (pNode)
+			for (CMapObject* pObject = helper.first(); pObject != nullptr; pObject = helper.next())
 			{
-				pObject = pNode->getObject();
-				pNode = pNode->getNext();
 				if (pObject && pObject->GetClassType() == CLS_EVENT && pObject != this)
 					count++;
 			}

@@ -9,11 +9,11 @@ public:
 	CDownItemObject(VOID);
 	virtual ~CDownItemObject(VOID);
 	VOID Clean();
-	BOOL GetViewmsg(char* pszMsg, int& length, CMapObject* pViewer = nullptr);
-	BOOL GetOutViewmsg(char* pszMsg, int& length, CMapObject* pViewer = nullptr);
-	BOOL CanRecvMsg() { return FALSE; }
-	e_object_type GetType() { return OBJ_DOWNITEM; }
-	e_class_type GetClassType() { return CLS_DOWNITEM; }
+	BOOL GetViewmsg(char* pszMsg, int& length, CMapObject* pViewer = nullptr) override;
+	BOOL GetOutViewmsg(char* pszMsg, int& length, CMapObject* pViewer = nullptr) override;
+	BOOL CanRecvMsg() override { return FALSE; }
+	e_object_type GetType() override { return OBJ_DOWNITEM; }
+	e_class_type GetClassType() override { return CLS_DOWNITEM; }
 	//获取物品
 	ITEM& GetItem() { return m_Item; }
 	//设置物品
@@ -27,9 +27,9 @@ public:
 	//更新验证
 	BOOL UpdateValid();
 	//物品掉落进入地图
-	VOID OnEnterMap(CLogicMap* pMap);
+	VOID OnEnterMap(CLogicMap* pMap) override;
 	//物品掉落离开地图
-	VOID OnLeaveMap(CLogicMap* pMap);
+	VOID OnLeaveMap(CLogicMap* pMap) override;
 	//是否是附身物品
 	BOOL IsGold()const
 	{

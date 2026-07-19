@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <string>
+#include <atomic>
 
 //物品管理
 class CItemManager : public xSingletonClass<CItemManager>
@@ -100,13 +101,13 @@ public:
 	BOOL UpdateItems(DWORD dwOwnerId, BYTE btFlag, DBITEM* pItemArray, int count);
 	//更新物品位置
 	BOOL UpdateItemPos(BYTE btFlag, BAGITEMPOS* pItemPos, WORD wCount);
-	//获取统计数量
+	//获取统计数量（线程安全）
 	VOID GetMiscCount(DWORD& dwTempCount, DWORD& dwCreateCount, DWORD& deleteCount, DWORD& dwIdentCount) const
 	{
-		dwTempCount = m_nTempItemCount;
-		dwCreateCount = m_nCreateItemCount;
-		deleteCount = m_nDeleteTempItemCount;
-		dwIdentCount = m_nIdentCount;
+		dwTempCount = m_nTempItemCount.load(std::memory_order_relaxed);
+		dwCreateCount = m_nCreateItemCount.load(std::memory_order_relaxed);
+		deleteCount = m_nDeleteTempItemCount.load(std::memory_order_relaxed);
+		dwIdentCount = m_nIdentCount.load(std::memory_order_relaxed);
 	}
 	//升级物品
 	BOOL UpgradeItem(ITEM& item);
@@ -170,10 +171,10 @@ private:
 
 	std::string m_strErrorMsg;
 	
-	DWORD m_nIdentCount;
-	DWORD m_nTempItemCount;
-	DWORD m_nCreateItemCount;
-	DWORD m_nDeleteTempItemCount;
+	std::atomic<DWORD> m_nIdentCount{0};
+	std::atomic<DWORD> m_nTempItemCount{0};
+	std::atomic<DWORD> m_nCreateItemCount{0};
+	std::atomic<DWORD> m_nDeleteTempItemCount{0};
 
 	CNameHash m_ItemClassHash;
 

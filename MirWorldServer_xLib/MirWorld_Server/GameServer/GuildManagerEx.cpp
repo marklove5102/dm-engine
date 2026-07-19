@@ -58,11 +58,11 @@ VOID CGuildManagerEx::LoadGuildUpExp(const char* pszfile, DWORD dwCount)
 	CSettingFile sfGuild;
 	if (!sfGuild.Open(pszfile)) return;
 	char sectionName[64];
-	sprintf(sectionName, "GuildUpExp");
+	snprintf(sectionName, 64, "GuildUpExp");
 	for (DWORD i = 0; i <= dwCount; i++)
 	{
 		char itemName[5];
-		sprintf(itemName, "lv%d", i);
+		snprintf(itemName, 5, "lv%d", i);
 		m_UpExp.push_back(sfGuild.GetDword(sectionName, itemName, 0));
 	}
 	sfGuild.Close();

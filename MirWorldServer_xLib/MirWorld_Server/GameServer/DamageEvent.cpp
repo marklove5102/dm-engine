@@ -89,25 +89,22 @@ VOID CDamageEvent::OnUpdate(CVisibleEvent* pEvent)
 
 	for (int x = nStartX; x <= nEndX; x++)
 	{
-		//if( x < 0 || x > mw )continue;
 		for (int y = nStartY; y <= nEndY; y++)
 		{
-			//if( y < 0 || y > mh )continue;
 			pInfo = pMap->GetMapCellInfoShared(x, y);
 			if (pInfo && pInfo->m_xObjectList.getCount() > 0)
 			{
-				xListHost<CMapObject>::xListNode* pNode = pInfo->m_xObjectList.getHead();
-				while (pNode)
+				xListHelper<CMapObject> helper(&pInfo->m_xObjectList);
+				for (CMapObject* pObj = helper.first(); pObj != nullptr; pObj = helper.next())
 				{
-					if (pNode->getObject() && pNode->getObject()->GetClassType() == CLS_ALIVEOBJECT)
+					if (pObj && pObj->GetClassType() == CLS_ALIVEOBJECT)
 					{
-						CAliveObject* pAObj = (CAliveObject*)pNode->getObject();
+						CAliveObject* pAObj = (CAliveObject*)pObj;
 						if (pAObj != m_pOwner && !pAObj->IsDeath() && m_pOwner->IsProperTarget(pAObj))
 						{
 							pAObj->AddProcess(EP_BEATTACKED, m_nDamage, m_pOwner == nullptr ? 0 : m_pOwner->GetId(), m_DamageType);
 						}
 					}
-					pNode = pNode->getNext();
 				}
 			}
 		}

@@ -37,17 +37,14 @@ VOID CBlueFireEvent::OnUpdate(CVisibleEvent* pEvent)
 	CMapCellInfo* pInfo = pEventMap->GetMapCellInfoShared(pEvent->getX(), pEvent->getY());
 	if (pInfo)
 	{
-		xListHost<CMapObject>::xListNode* pNode = pInfo->m_xObjectList.getHead();
-		CMapObject* pObject = nullptr;
-		while (pNode)
+		xListHelper<CMapObject> helper(&pInfo->m_xObjectList);
+		for (CMapObject* pObject = helper.first(); pObject != nullptr; pObject = helper.next())
 		{
-			pObject = pNode->getObject();
 			if (pObject && pObject->GetClassType() == CLS_ALIVEOBJECT && pObject != m_pOwner && !((CAliveObject*)pObject)->IsDeath() && m_pOwner->IsProperTarget((CAliveObject*)pObject))
 			{
 				UINT nDamage = Getrand(m_nDamage);
 				((CAliveObject*)pObject)->AddProcess(EP_BEATTACKED, nDamage, m_pOwner == nullptr ? 0 : m_pOwner->GetId(), DT_DIRECT);
 			}
-			pNode = pNode->getNext();
 		}
 	}
 }

@@ -843,15 +843,29 @@ private:
 };
 
 
+// ============================================================================
+// CIntHash<MAXCOUNT> — 固定容量 int→int 哈希表
+// ============================================================================
+// 基于 SmallFlatMap 的栈存储整数哈希表,用于小规模 key-value 映射场景。
+// 与 SmallFlatMap 一样,容量溢出时调用 std::abort(),需确保 MAXCOUNT 足够大。
+//
+// 典型用法:
+//   CIntHash<128> hash;
+//   hash.HAdd(1001, 5);         // 添加 key-value
+//   int val = hash.HGet(1001);  // 获取 value (不存在返回0)
+//   hash.HDel(1001);            // 删除 key
+// ============================================================================
 template <int MAXCOUNT>
 class CIntHash
 {
 public:
+	// 添加 key-value 映射 (key已存在则覆盖)
 	BOOL HAdd(int ikey, int ivalue)
 	{
 		m_map[ikey] = ivalue;
 		return TRUE;
 	}
+	// 获取 key 对应的 value,不存在时返回 0
 	int HGet(int ikey)
 	{
 		auto it = m_map.find(ikey);
@@ -859,6 +873,7 @@ public:
 			return 0;
 		return it->second;
 	}
+	// 删除 key,成功返回 TRUE,不存在返回 FALSE
 	int HDel(int ikey)
 	{
 		auto it = m_map.find(ikey);
@@ -867,6 +882,7 @@ public:
 		m_map.erase(it);
 		return TRUE;
 	}
+	// 查找 key,返回 value 指针(不存在返回 nullptr);可通过指针直接修改 value
 	int* Find(int ikey)
 	{
 		auto it = m_map.find(ikey);
@@ -917,12 +933,29 @@ private:
 };
 
 
-/// <summary>
-/// 基于槽位的双向链表，支持 ID 分配/回收
-/// 适合编译期就知道容量的场景，使用简单，构造即用，不需要手动初始化
-/// </summary>
-/// <typeparam name="T"></typeparam>
-/// <typeparam name="MAXCOUNT"></typeparam>
+// ============================================================================
+// CIndexList<T, MAXCOUNT> — 编译期固定容量槽位双向链表
+// ============================================================================
+// 基于数组槽位(Slot)的双向链表,支持 ID 分配与回收。
+// 容量在编译期确定(MAXCOUNT),栈上分配,无堆内存开销。
+// 适合对象数量固定且编译期已知的场景(如NPC固定槽位)。
+//
+// 核心特性:
+//   - 槽位复用:通过空闲链表(m_free)实现 O(1) 的 ID 分配/回收
+//   - 双向遍历:支持 First/Next/End 遍历,以及 Reset 重置遍历指针
+//   - ID 稳定:对象的 ID 在整个生命周期内不变,可直接通过 ID 索引访问
+//   - 线程安全:内嵌 SRWLOCK 读写锁,读共享/写独占
+//
+// 典型用法:
+//   CIndexList<CNpc, 128> npcList;
+//   CNpc* pNpc = nullptr;
+//   UINT id = npcList.New(&pNpc);  // 分配新槽位
+//   CNpc* p = npcList.Get(id);     // 通过 ID 获取
+//   npcList.Del(id);               // 删除并回收槽位
+//   npcList.ForEach([](CNpc* p){   // 批量遍历 (推荐,一次锁完成)
+//       p->Update();
+//   });
+// ============================================================================
 template <class T, int MAXCOUNT>
 class CIndexList
 {
@@ -1130,11 +1163,26 @@ private:
 };
 
 
-/// <summary>
-/// 基于槽位的双向链表，支持 ID 分配/回收
-/// 适合运行期才确定容量的场景（如配置文件中读取），更灵活但需要两步初始化（构造 + Create() ），且支持销毁后重建不同容量。
-/// </summary>
-/// <typeparam name="T"></typeparam>
+// ============================================================================
+// CIndexListEx<T> — 运行期容量槽位双向链表
+// ============================================================================
+// 与 CIndexList 同类的槽位双向链表,但容量在运行期通过 Create(maxcount) 确定。
+// 数据存储在 std::vector 中(堆内存),支持 Destroy 后重新 Create 不同容量。
+// 适合对象数量依赖配置文件的场景(如怪物数量上限从 DB 读取)。
+//
+// 与 CIndexList 的关键差异:
+//   - 两步初始化: 构造 → Create(maxcount),使用前需检查 IsCreated()
+//   - 堆存储:    m_vData/m_Slots 为 std::vector,可动态扩容
+//   - 可重建:    Destroy() 后可再次 Create 不同容量
+//   - 其余 API 与 CIndexList 基本一致
+//
+// 典型用法:
+//   CIndexListEx<CMonster> monsterList;
+//   monsterList.Create(cfgMonsterMax);          // 从配置读取容量
+//   if (!monsterList.IsCreated()) return;
+//   // ... 使用方式和 CIndexList 相同 ...
+//   monsterList.Destroy();                       // 销毁,释放内存
+// ============================================================================
 template <class T>
 class CIndexListEx
 {
@@ -1571,6 +1619,60 @@ private:
 };
 
 
+// ==================================================
+//  RAII 工具: FileGuard / FindHandleGuard
+//
+//  目的: 消除裸 FILE*/HANDLE 在中途 return 或异常路径下的资源泄漏。
+//  设计: 重载 operator FILE*() / operator HANDLE() 隐式转换,
+//        使原有 fread/fwrite/fseek/ftell/FindNextFile 等调用无需修改,
+//        仅需把 `FILE* fp = fopen(...)` 改为 `FileGuard fp(fopen(...))`
+//        并删除末尾的 fclose(...)。
+// ==================================================
+class FileGuard
+{
+	FILE* m_fp;
+public:
+	explicit FileGuard(FILE* fp) noexcept : m_fp(fp) {}
+	~FileGuard() noexcept { if (m_fp) fclose(m_fp); }
+
+	FileGuard(const FileGuard&) = delete;
+	FileGuard& operator=(const FileGuard&) = delete;
+	FileGuard(FileGuard&& other) noexcept : m_fp(other.m_fp) { other.m_fp = nullptr; }
+	FileGuard& operator=(FileGuard&& other) noexcept
+	{
+		if (this != &other) { if (m_fp) fclose(m_fp); m_fp = other.m_fp; other.m_fp = nullptr; }
+		return *this;
+	}
+
+	operator FILE* () const noexcept { return m_fp; }   // 隐式转换, fread/fseek 等无需改
+	FILE* get() const noexcept { return m_fp; }
+	FILE* release() noexcept { FILE* t = m_fp; m_fp = nullptr; return t; }
+	explicit operator bool() const noexcept { return m_fp != nullptr; }
+};
+
+class FindHandleGuard
+{
+	HANDLE m_h;
+public:
+	explicit FindHandleGuard(HANDLE h) noexcept : m_h(h) {}
+	~FindHandleGuard() noexcept { if (m_h != INVALID_HANDLE_VALUE) FindClose(m_h); }
+
+	FindHandleGuard(const FindHandleGuard&) = delete;
+	FindHandleGuard& operator=(const FindHandleGuard&) = delete;
+	FindHandleGuard(FindHandleGuard&& other) noexcept : m_h(other.m_h) { other.m_h = INVALID_HANDLE_VALUE; }
+	FindHandleGuard& operator=(FindHandleGuard&& other) noexcept
+	{
+		if (this != &other) { if (m_h != INVALID_HANDLE_VALUE) FindClose(m_h); m_h = other.m_h; other.m_h = INVALID_HANDLE_VALUE; }
+		return *this;
+	}
+
+	operator HANDLE() const noexcept { return m_h; }
+	operator bool() const noexcept { return m_h != INVALID_HANDLE_VALUE; }
+	HANDLE get() const noexcept { return m_h; }
+	HANDLE release() noexcept { HANDLE t = m_h; m_h = INVALID_HANDLE_VALUE; return t; }
+};
+
+
 // 按行读取文本文件
 class CStringFile
 {
@@ -1892,16 +1994,57 @@ private:
 };
 
 
+// ====================================================================================
+// xListHost<T> — 侵入式双向链表宿主容器
+// ====================================================================================
+// 设计意图:
+//   传奇世界服务端中大量对象需要同时存在于多个逻辑链表中(如:怪物同时在场景链表、
+//   AI链表、AOI链表中等)。传统的 std::list 会导致每个链表都存储一份对象指针的副本，
+//   且无法在 O(1) 时间内将对象从一个链表转移到另一个链表。
+//
+//   本类采用"侵入式链表" (Intrusive Linked List) 设计模式:
+//   - 链表节点(xListNode)由用户对象持有,而非容器分配。即 T 类型对象内部需包含
+//     xListNode 成员,通过 xListNode 的 m_pObject 反向索引到所属对象。
+//   - 节点可以从一个链表"离开"(Leave)并"进入"(Enter)另一个链表,全程零内存分配。
+//
+// 典型用法 (对象同时存在于场景链表和AOI链表):
+//   class CMonster
+//   {
+//       xListHost<CMonster>::xListNode m_lnScene;  // 场景链表节点
+//       xListHost<CMonster>::xListNode m_lnAOI;    // AOI链表节点
+//   };
+//
+//   xListHost<CMonster> sceneList;   // 场景链表
+//   xListHost<CMonster> aoiList;     // AOI链表
+//
+//   CMonster* pMon = new CMonster;
+//   pMon->m_lnScene.setObject(pMon); // 节点绑定到对象
+//   pMon->m_lnScene.Enter(&sceneList); // 加入场景链表
+//   pMon->m_lnAOI.setObject(pMon);
+//   pMon->m_lnAOI.Enter(&aoiList);     // 同时加入AOI链表
+//
+// 注意事项:
+//   1. 同一个 xListNode 在同一时刻只能属于一个 xListHost,Enter 前会自动 Leave。
+//   2. 插入固定发生在链表头部(头插法),遍历顺序与插入顺序相反(LIFO)。
+//   3. 链表本身不负责 T* 对象的生命周期管理,析构时不会 delete 节点/对象。
+//   4. 线程不安全,需外部加锁保护。
+// ====================================================================================
 template <class T>
 class xListHost
 {
 public:
+	// --------------------------------------------------------------------------------
+	// xListNode — 侵入式链表节点
+	// 每个节点持有:指向前后节点的指针(m_pNext/m_pPrev)、所属链表指针(m_pHost)、
+	// 以及实际数据对象的指针(m_pObject)。
+	// 节点自身不分配堆内存,适合嵌入用户对象作为成员变量。
+	// --------------------------------------------------------------------------------
 	class xListNode
 	{
-		xListNode* m_pNext;
-		xListNode* m_pPrev;
-		xListHost<T>* m_pHost;
-		T* m_pObject;
+		xListNode* m_pNext;			// 后继节点指针
+		xListNode* m_pPrev;			// 前驱节点指针
+		xListHost<T>* m_pHost;		// 所属链表宿主(用于多宿主安全校验)
+		T* m_pObject;				// 反向索引:指向包含本节点的用户对象
 	public:
 		xListNode() : m_pObject(nullptr), m_pNext(nullptr), m_pPrev(nullptr), m_pHost(nullptr)
 		{
@@ -1923,48 +2066,68 @@ public:
 		VOID setNext(xListNode* pNext) { m_pNext = pNext; }
 		VOID setPrev(xListNode* pPrev) { m_pPrev = pPrev; }
 		VOID setHost(xListHost<T>* pHost) { m_pHost = pHost; }
+		// 从当前所属链表中移除本节点(若未加入任何链表则返回FALSE)
 		BOOL Leave()
 		{
 			if (m_pHost == nullptr)return FALSE;
 			return m_pHost->removeNode(this);
 		}
+		// 将本节点加入指定链表(内部先调用Leave确保同一时刻只属于一个链表)
 		BOOL Enter(xListHost<T>* pHost)
 		{
 			return pHost->addNode(this);
 		}
+		// 检查本节点是否属于指定链表(pHost为空时返回FALSE)
 		BOOL BelongTo(xListHost<T>* pHost)
 		{
 			return (pHost == m_pHost);
 		}
 	};
+	// --------------------------------------------------------------------------------
+	// xEventListener — 链表事件监听器(观察者模式)
+	// 派生此类以监听节点的添加/移除事件。典型用途:数据变化通知、统计计数、
+	// 链表状态的断言检查等。注意回调在 addNode/removeNode 内部同步触发。
+	// --------------------------------------------------------------------------------
 	template <class T>
 	class xEventListener
 	{
 	public:
+		// 节点添加回调:节点已成功挂入链表时触发
 		virtual VOID OnAddNode( xListHost<T> * pHost, xListNode * pNode ) = 0;
+		// 节点移除回调:节点已从链表摘除,但尚未清空字段时触发
 		virtual VOID OnRemoveNode( xListHost<T> * pHost, xListNode * pNode ) = 0;
 	};
 private:
-	xListNode* m_pHead;
-	int	m_iNodeCount;
-	xEventListener<T> * m_pEventListener;
+	xListNode* m_pHead;				// 链表头节点(头插法,最新插入的节点在头部)
+	int	m_iNodeCount;				// 当前节点总数(通过addNode/removeNode维护)
+	xEventListener<T> * m_pEventListener;	// 可选的事件监听器
 public:
+	// 默认构造:空链表,无监听器
 	xListHost() : m_pHead(nullptr), m_iNodeCount(0), m_pEventListener(nullptr) {}
+	// 带监听器构造:传入xEventListener*并断言非空
 	xListHost(LPVOID pListener) : m_pHead(nullptr), m_iNodeCount(0), m_pEventListener((xEventListener<T>*)pListener) { assert(pListener!=nullptr); }
 	~xListHost() {}
+	// 获取事件监听器(可能为nullptr)
 	xEventListener<T> * getListener(){return m_pEventListener;}
+	// 获取链表头节点,用于遍历链表(返回nullptr表示空链表)
 	xListNode* getHead() { return m_pHead; }
+
+	// ----------------------------------------------------------------------------
+	// removeNode — 从链表中移除指定节点
+	// 安全检查:节点为空/节点不属于本链表时返回FALSE;
+	// 操作包括:从双向链表中摘除、清空节点关联字段、触发OnRemoveNode回调。
+	// ----------------------------------------------------------------------------
 	BOOL removeNode(xListNode* pNode)
 	{
 		if (pNode == nullptr)return FALSE;
-		if (pNode->getHost() != this)return FALSE;
+		if (pNode->getHost() != this)return FALSE;	// 多宿主安全校验
 
 		xListNode* pNext = pNode->getNext();
 		xListNode* pPrev = pNode->getPrev();
 		if (pNext != nullptr)pNext->setPrev(pPrev);
 		if (pPrev != nullptr)pPrev->setNext(pNext);
 
-		if (m_pHead == pNode)
+		if (m_pHead == pNode)			// 被移除的恰好是头节点
 			m_pHead = pNext;
 		pNode->setNext(nullptr);
 		pNode->setPrev(nullptr);
@@ -1974,79 +2137,95 @@ public:
 		assert(m_iNodeCount >= 0);
 		return TRUE;
 	}
+
+	// ----------------------------------------------------------------------------
+	// addNode — 将节点加入链表头部(头插法)
+	// 先调用pNode->Leave()确保节点从原链表脱离,再挂入本链表头部;
+	// 完成后触发OnAddNode回调。节点插入后可通过getHead()获取。
+	// ----------------------------------------------------------------------------
 	BOOL addNode(xListNode* pNode)
 	{
 		if (pNode == nullptr)return FALSE;
-		pNode->Leave();
+		pNode->Leave();					// 先从原链表脱离(如有)
 		pNode->setHost(this);
 		pNode->setPrev(nullptr);
-		pNode->setNext(m_pHead);
+		pNode->setNext(m_pHead);		// 新节点后继指向旧头节点
 		if (m_pHead != nullptr)
-			m_pHead->setPrev(pNode);
-		m_pHead = pNode;
+			m_pHead->setPrev(pNode);	// 旧头节点前驱指向新节点
+		m_pHead = pNode;				// 新节点成为头节点
 		if (m_pEventListener)m_pEventListener->OnAddNode(this, pNode);
 		m_iNodeCount++;
 		return TRUE;
 	}
+	// 获取当前链表中的节点总数
 	int	getCount() { return m_iNodeCount; }
 };
 
 
+// ============================================================================
+// xListHelper<T> — xListHost 链表迭代器
+// ============================================================================
+// 封装 xListHost 的遍历逻辑,提供 first()/next() 迭代协议。
+// 注意:迭代期间若链表被修改(addNode/removeNode),行为未定义,需外部保证一致性。
+//
+// 典型用法:
+//   xListHelper<CMonster> helper(&monsterList);
+//   for (CMonster* p = helper.first(); p != nullptr; p = helper.next())
+//       p->Update();
+// ============================================================================
 template <class T>
 class xListHelper
 {
 public:
 	xListHelper(xListHost<T>* pList) { setList(pList); }
-	xListHelper()
-	{
-		m_pList = nullptr;
-		m_pNode = nullptr;
-	}
+	xListHelper() : m_pList(nullptr), m_pNode(nullptr) {}
 	VOID setList(xListHost<T>* pList)
 	{
 		m_pList = pList;
-		if (m_pList)
-			m_pNode = m_pList->getHead();
+		m_pNode = m_pList ? m_pList->getHead() : nullptr;
 	}
 	xListHost<T>* getList() { return m_pList; }
-	T* first()
+	// 重置迭代器到链表头部，返回首元素
+	// 调用后 m_pNode 指向第二个节点（为 next() 准备）
+	[[nodiscard]] T* first()
 	{
-		if (m_pList == nullptr)return nullptr;
+		if (m_pList == nullptr) return nullptr;
 		m_pNode = m_pList->getHead();
-		if (m_pNode)
-		{
-			T* pObject = m_pNode == nullptr ? nullptr : m_pNode->getObject();
-			m_pNode = m_pNode->getNext();
-			return pObject;
-		}
-		return nullptr;
+		if (m_pNode == nullptr) return nullptr;
+		T* pObject = m_pNode->getObject();
+		m_pNode = m_pNode->getNext();
+		return pObject;
 	}
-	T * current()
+	// 前进到下一个元素，返回当前元素
+	// 注：依赖调用方遵循 first()→next()→next()... 的迭代协议
+	[[nodiscard]] T* next()
 	{
-		if(m_pNode)
-			return m_pNode->getObject();
-		return nullptr;
-	}
-	T* next()
-	{
-		if (m_pList == nullptr)return nullptr;
-		if (m_pNode)
-		{
-			T* pObject = m_pNode == nullptr ? nullptr : m_pNode->getObject();
-			m_pNode = m_pNode->getNext();
-			return pObject;
-		}
-		return nullptr;
+		if (m_pNode == nullptr) return nullptr;
+		T* pObject = m_pNode->getObject();
+		m_pNode = m_pNode->getNext();
+		return pObject;
 	}
 private:
 	typename xListHost<T>::xListNode* m_pNode;
-	typename xListHost<T>* m_pList;
+	xListHost<T>* m_pList;
 };
 
 
 #define	THREAD_PROTECT CLock locker( &m_CriticalSection );
 #define	THREAD_PROTECT_DEFINE CriticalSection m_CriticalSection;
-// 指针队列
+// ============================================================================
+// xPtrQueue<T> — 线程安全的固定容量环形指针队列
+// ============================================================================
+// 基于数组的环形缓冲区,使用 CriticalSection 保证 push/pop 线程安全。
+// 适合单生产者-单消费者或低竞争的多线程场景(如网络消息队列)。
+// 注意:推入的是 T* 裸指针,队列不负责指针生命周期管理。
+//
+// 典型用法:
+//   xPtrQueue<NetPacket> queue(1024);     // 创建容量为1024的队列
+//   queue.push(new NetPacket(...));        // 生产者线程推入
+//   NetPacket* p = queue.pop();            // 消费者线程取出
+//   if (p) { process(p); delete p; }
+// ============================================================================
 template<class T>
 class xPtrQueue
 {
@@ -2231,13 +2410,53 @@ public:
 		int curPop = m_iPop.load(std::memory_order_relaxed);
 		return (curPush == curPop);
 	}
+	// 单消费者（仅限主线程）。
+	// 返回头元素但不将其出队，用于到期时间判定，避免尚未到期的延迟进程每帧都被 pop/push 冲刷一遍。
+	T* peek()
+	{
+		if (m_iRead == m_iPush.load(std::memory_order_acquire))
+			return nullptr; // queue empty
+		std::atomic_thread_fence(std::memory_order_acquire);
+		return m_pQueue[m_iRead];
+	}
 };
 
 
 constexpr auto OBJECTPOOLCACHESIZE = 4096; // 对象池缓存块大小（字节）
+
+// ============================================================================
+// xObjectPool<T> — 高性能对象池
+// ============================================================================
+// 三层分配策略:
+//   1. 空闲栈(m_stkFree) — O(1) 归还/获取,优先复用已释放对象
+//   2. 缓存块(m_pCacheBlocks) — 批量预分配连续内存(每块 OBJECTPOOLCACHESIZE 字节)
+//   3. 单独分配(m_vObjects) — 缓存块耗尽时单独 new
+//
+// 核心特性:
+//   - 线程安全:内嵌 SRWLOCK,写锁保护 newObject/deleteObject
+//   - RAII 支持:uniqueObject() 返回 unique_ptr<T, Deleter>,离开作用域自动归还
+//   - 批量清理:clearAll(callback) 支持清理外部引用后再释放内存
+//   - 批量遍历:forEach(callback) 可遍历所有已分配对象
+//
+// 典型用法:
+//   xObjectPool<MyStruct> pool;
+//   auto obj = pool.uniqueObject();        // RAII 方式,自动归还
+//   MyStruct* p = pool.newObject();        // 手动方式
+//   // ... use p ...
+//   pool.deleteObject(p);                  // 手动归还
+//   pool.forEach([](MyStruct* p){          // 批量操作
+//       p->Reset();
+//   });
+// ============================================================================
 template <class T>
 class xObjectPool
 {
+	// 自定义删除器：配合 unique_ptr 实现 RAII 自动归还对象池
+	struct Deleter
+	{
+		xObjectPool* pool;
+		void operator()(T* p) const { if (pool && p) pool->deleteObject(p); }
+	};
 public:
 	xObjectPool() : m_nCachePtr(0), m_nCacheSize(0)
 	{
@@ -2248,7 +2467,7 @@ public:
 	}
 	T* newObject()
 	{
-		THREAD_PROTECT;
+		SWLock lock(m_PoolLock); // SRWLOCK 替代 CRITICAL_SECTION (用户态, 更快)
 		// 优先从空闲栈取
 		if (!m_stkFree.empty())
 		{
@@ -2268,9 +2487,15 @@ public:
 	}
 	VOID deleteObject(T* pObject)
 	{
-		THREAD_PROTECT;
+		SWLock lock(m_PoolLock);
 		if (pObject == nullptr) return;
 		m_stkFree.push(pObject);
+	}
+	// RAII wrapper: returns std::unique_ptr<T, Deleter>, auto-returned on scope exit
+	std::unique_ptr<T, Deleter> uniqueObject()
+	{
+		T* p = newObject();
+		return std::unique_ptr<T, Deleter>(p, Deleter{ this });
 	}
 	int getCount() const { return (int)m_vObjects.size(); }
 	int getFreeCount() const { return (int)m_stkFree.size(); }
@@ -2279,7 +2504,7 @@ public:
 	template<typename Func>
 	VOID forEach(Func&& callback)
 	{
-		THREAD_PROTECT;
+		SWLock lock(m_PoolLock);
 		for (auto& up : m_vObjects)
 		{
 			if (!callback(up.get()))
@@ -2290,7 +2515,7 @@ public:
 	template<typename Func>
 	VOID clearAll(Func&& cleanupFunc)
 	{
-		THREAD_PROTECT;
+		SWLock lock(m_PoolLock);
 		for (auto& up : m_vObjects)
 			cleanupFunc(up.get());
 		m_vObjects.clear();
@@ -2301,7 +2526,7 @@ public:
 		m_nCacheSize = 0;
 	}
 private:
-	THREAD_PROTECT_DEFINE
+	mutable SRWLOCK m_PoolLock = SRWLOCK_INIT; // 替代 CriticalSection
 	T* AllocFromCache()
 	{
 		if (m_nCachePtr >= m_nCacheSize)
@@ -2460,7 +2685,20 @@ struct PooledStringDeleter
 using pooled_string_ptr = std::unique_ptr<char[], PooledStringDeleter>;
 
 
-// 自动释放数组
+// ============================================================================
+// xAutoPtrArray<T> — 自动管理内存的指针数组
+// ============================================================================
+// 固定容量的 T* 数组,析构时自动释放 unique_ptr 管理的底层内存。
+// 注意:仅管理指针数组本身的内存,不负责 T* 指向对象的生命周期。
+// 支持 Add/Insert/Del 操作,删除时通过 memmove 保持数组连续性。
+//
+// 典型用法:
+//   xAutoPtrArray<CMonster> arr(64);       // 最多64个元素
+//   arr.Add(pMonster1);
+//   arr.Add(pMonster2);
+//   CMonster* p = arr.Get(0);               // 按索引获取
+//   arr.Del(0);                              // 按索引删除(后续元素前移)
+// ============================================================================
 template<class T>
 class xAutoPtrArray
 {
@@ -2545,7 +2783,26 @@ private:
 };
 
 
-// 单例模板类-线程安全-零开销
+// ============================================================================
+// xSingletonClass<T> — 线程安全单例基类(DCLP + SRWLOCK)
+// ============================================================================
+// 使用双重检查锁定(Double-Checked Locking Pattern)实现懒加载单例。
+// 派生类将自身 this 传给基类构造,GetInstance() 首次调用时通过 new 创建。
+// 内存序:acquire-release 保证 T 构造完成后才对其他线程可见。
+//
+// 典型用法:
+//   class CGameWorld : public xSingletonClass<CGameWorld>
+//   {
+//       friend class xSingletonClass<CGameWorld>;
+//       CGameWorld() {}
+//   public:
+//       void Init() { ... }
+//   };
+//   // 使用:
+//   CGameWorld::GetInstance()->Init();
+//
+// 注意:不支持自动析构,单例对象在程序运行期一直存活。
+// ============================================================================
 template <class T>
 class xSingletonClass
 {
@@ -2630,7 +2887,19 @@ inline int SearchParam(char* buffer, char** Params, int maxparam, const char* sp
 	return count;
 }
 
-// 字符串分割器，支持单字符和多字符分隔符（包括中文）
+// ============================================================================
+// xStringsExpander<maxindex> — 栈上字符串分割器
+// ============================================================================
+// 在构造时按分隔符拆分字符串,结果存储在 std::array<char*, maxindex> 中。
+// 支持单字符和多字符分隔符(包括中文),内部调用 SearchParam/Trim。
+// 注意:不拷贝字符串内容,仅保存指向原 buffer 的指针,原 buffer 需在对象生命周期内有效。
+//
+// 典型用法:
+//   char buf[] = "1001,2002,3003";
+//   xStringsExpander<8> expander(buf, ',');   // 按逗号分割,最多8段
+//   for (int i = 0; i < expander.getCount(); ++i)
+//       printf("%s\n", expander[i]);
+// ============================================================================
 template<int maxindex>
 class xStringsExpander
 {
@@ -2678,6 +2947,9 @@ public:
 	CSpinBarrier(int count) : m_remaining(count) {}
 	// 带超时等待：返回 TRUE 表示所有参与者已完成，FALSE 表示超时
 	// 超时后调用者可执行降级逻辑（日志+断言），避免整个主循环卡死
+	// 自旋策略优化: 4000 次 _mm_pause() (≈1-2μs @3GHz) → Sleep(0) 让出时间片
+	// 原 8 次自旋即 Sleep(0) 导致线程频繁被 OS 重调度 (数十ms延迟),
+	// 增加自旋次数消除了短等待场景的 Sleep(0) 惩罚
 	BOOL Arrive(DWORD dwTimeoutMs = 0)
 	{
 		const auto start = std::chrono::steady_clock::now();
@@ -2688,18 +2960,13 @@ public:
 			// 超时检查放最前
 			if (dwTimeoutMs != 0 && std::chrono::steady_clock::now() - start >= timeout)
 				return FALSE;
-			if (spins < 16)  // 第一阶段：轻量 pause
-			{
-				_mm_pause(); // 提示 CPU 这是自旋等待，降低功耗/竞争
-				_mm_pause(); // 双倍 pause，现代 CPU 推荐
-			}
-			else if (spins < 32)  // 第二阶段：单 pause
+			if (spins < 4000)  // 延长自旋: 覆盖绝大多数并行场景的尾延迟 (≈1-2μs)
 			{
 				_mm_pause();
 			}
-			else  // 第三阶段：让出 CPU
+			else
 			{
-				std::this_thread::yield();
+				Sleep(0); // 长时间等待才让出时间片, 减少 OS 重调度开销
 				spins = 0;
 				continue;
 			}

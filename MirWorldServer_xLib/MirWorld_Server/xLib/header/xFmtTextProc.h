@@ -5,6 +5,7 @@
 class xVariableProvider
 {
 public:
+	virtual ~xVariableProvider() = default;
 	virtual char* GetVariableValue(const char* pszVariable) { return nullptr; }
 	virtual VOID SetVariableValue(const char* pszVariable, const char* pszValue) {}
 	virtual VOID ClrVariable(const char* pszVariable) {}

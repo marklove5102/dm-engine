@@ -34,10 +34,10 @@ public:
 	BOOL InitBot(BOT_CREATE_DESC& desc);
 
 	// 重写关键虚函数
-	virtual VOID Update();                  // 机器人主更新循环
-	virtual BOOL CanRecvMsg();              // 机器人不需要真实网络消息
-	virtual VOID OnDeath(DWORD dwKiller);   // 死亡处理
-	virtual VOID OnDamage(CAliveObject* pAttacker, int nDamage, damage_type type); // 受伤时锁定攻击者
+	virtual VOID Update() override;                  // 机器人主更新循环
+	virtual BOOL CanRecvMsg() override;              // 机器人不需要真实网络消息
+	virtual VOID OnDeath(DWORD dwKiller) override;   // 死亡处理
+	virtual VOID OnDamage(CAliveObject* pAttacker, int nDamage, damage_type type) override; // 受伤时锁定攻击者
 
 	// 决策上下文接口
 	CBotContext* GetContext() { return m_pContext; }
@@ -112,9 +112,10 @@ private:
 	DWORD m_dwDeathTime;    // 死亡时间戳（用于复活延迟判断）
 	
 	// 人类行为模拟参数
-	DWORD m_dwThinkInterval;// 思考间隔(毫秒)
-	DWORD m_dwIdleChance;   // 发呆概率
-	DWORD m_dwChatChance;   // 聊天概率
+	DWORD m_dwThinkInterval;		// 思考间隔(毫秒)
+	DWORD m_dwIdleChance;   		// 发呆概率
+	DWORD m_dwChatChance;   		// 聊天概率
+	DWORD m_dwCachedThinkInterval;	// 缓存的随机化思考间隔(用于本轮定时器判断, 避免ComputeThinkInterval每帧触发FindNearestMonster)
 
 	// 统计数据
 	DWORD m_dwOnlineTime;   // 在线时长

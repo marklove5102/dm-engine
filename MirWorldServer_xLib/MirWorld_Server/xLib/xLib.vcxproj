@@ -106,7 +106,6 @@
     <ClInclude Include="header\xIocpUnit.h" />
     <ClInclude Include="header\xIocpWorkThread.h" />
     <ClInclude Include="header\xListenObject.h" />
-    <ClInclude Include="header\xMtVerify.h" />
     <ClInclude Include="header\xNameCheck.h" />
     <ClInclude Include="header\xPacket.h" />
     <ClInclude Include="header\xServerObject.h" />

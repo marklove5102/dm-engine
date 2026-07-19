@@ -9,9 +9,8 @@ xClientObject::xClientObject(VOID)
 	  m_bQueryDisconnect(FALSE),
 	  m_bBatchMode(FALSE)
 {
-	// 初始化批量缓冲区
-	m_pBatchPacket = std::make_unique<xPacket>();
-	m_pBatchPacket->create(DEF_PACKET_SIZE);
+	// 批量缓冲区延迟分配：仅在 m_bBatchMode=TRUE 且首次写入时创建
+	m_pBatchPacket = nullptr;
 }
 
 xClientObject::~xClientObject(VOID)
@@ -99,6 +98,12 @@ BOOL xClientObject::postSendBatch(LPVOID lpData, int nSize)
 	if (!IsConnected()) return FALSE;
 	if (!m_bBatchMode) return postSend(lpData, nSize);
 	if (nSize <= 0) return TRUE;
+	// 延迟分配批量缓冲区（仅在批量模式下首次写入时创建，节省空闲连接内存）
+	if (m_pBatchPacket == nullptr)
+	{
+		m_pBatchPacket = std::make_unique<xPacket>();
+		m_pBatchPacket->create(DEF_PACKET_SIZE);
+	}
 	// 缓冲区剩余空间不足，先刷新再追加
 	if (m_pBatchPacket->getfreesize() < nSize)
 	{
@@ -215,6 +220,7 @@ VOID xClientObject::OnEvent(xEventSender* pSender, int iEvent, int iParam, LPVOI
 		auto* pIocpUnit = static_cast<xIocpUnit*>(lpParam);
 		auto* pPacket = static_cast<xPacket*>(pIocpUnit->getData());
 		BOOL bDisconnect = FALSE;
+		BOOL bIocpUnitReleased = FALSE;
 		pPacket->setsize(iParam);
 		if (iParam == 0)
 		{
@@ -243,7 +249,7 @@ VOID xClientObject::OnEvent(xEventSender* pSender, int iEvent, int iParam, LPVOI
 				pIocpUnit->setData(pPacket);
 				if (!postRecv(pIocpUnit, pPacket))
 				{
-					if (pIocpUnit) pServer->releaseIocpUnit(pIocpUnit);
+					if (pIocpUnit) { pServer->releaseIocpUnit(pIocpUnit); bIocpUnitReleased = TRUE; }
 					bDisconnect = TRUE;
 				}
 			}
@@ -256,8 +262,11 @@ VOID xClientObject::OnEvent(xEventSender* pSender, int iEvent, int iParam, LPVOI
 		}
 		if (bDisconnect)
 		{
-			pServer->releaseIocpUnit(pIocpUnit);
-			pServer->releasePacket(pPacket);
+			// 防止双重释放：postRecv 失败路径中已释放 pIocpUnit，此处不再释放
+			if (!bIocpUnitReleased && pIocpUnit)
+				pServer->releaseIocpUnit(pIocpUnit);
+			if (pPacket)
+				pServer->releasePacket(pPacket);
 			Disconnect();
 		}
 	}

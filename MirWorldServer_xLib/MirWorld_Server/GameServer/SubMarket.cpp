@@ -134,14 +134,14 @@ VOID CSubMarket::QueryItems(CHumanPlayer* pPlayer, UINT nMarketId)
 {
 	xPacketPool::ScopedPacket packet(65536);
 	//1268|827|00109|双倍经验晚间卡（天）|4|1
-	sprintf((char*)packet->getfreebuf(), "%02u%02u&", nMarketId, GetId());
+	snprintf((char*)packet->getfreebuf(), 65536, "%02u%02u&", nMarketId, GetId());
 	packet->addsize((int)strlen(packet->getfreebuf()));
 	UINT nItemId = 0;
 	for (UINT i = 0; i < this->m_nItemCount; i++)
 	{
 		if (this->m_pItemArray[i])
 		{
-			sprintf((char*)packet->getfreebuf(), "%u|%u|%05u|%s|%u|%u&",
+			snprintf((char*)packet->getfreebuf(), 65536 - packet->getsize(), "%u|%u|%05u|%s|%u|%u&",
 				this->m_pItemArray[i]->nId,
 				this->m_pItemArray[i]->nImage,
 				this->m_pItemArray[i]->nShowImage,

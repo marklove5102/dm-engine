@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="资源文件">
@@ -107,27 +107,6 @@
     <Filter Include="机器人">
       <UniqueIdentifier>{c6abfd78-7e7f-4edf-9466-dcf7138f1a35}</UniqueIdentifier>
     </Filter>
-    <Filter Include="库包相关\ECS">
-      <UniqueIdentifier>{92e4e8b9-30e4-4dbe-af48-680ecc92ef28}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="功能处理\玩家\组件">
-      <UniqueIdentifier>{50d0ff5e-503e-49d9-aaf4-72d2624c3d21}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ECS管理">
-      <UniqueIdentifier>{72a5923f-8ad0-4910-8f42-840137072f45}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ECS管理\组件公共">
-      <UniqueIdentifier>{bf8433a8-f780-4d68-bf2a-ccd98b3b9ac9}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ECS管理\组件管理">
-      <UniqueIdentifier>{fc748b2c-5357-452c-83b9-6d4ad0809b6e}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="功能处理\怪物\组件">
-      <UniqueIdentifier>{4c59b258-a915-4462-815f-5403d31234c9}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="功能处理\NPC\组件">
-      <UniqueIdentifier>{5dd0804e-60dc-4563-8108-e0ce1aec4026}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\res\public.rc">
@@ -168,6 +147,9 @@
     <ClCompile Include="Human_Action.cpp">
       <Filter>功能处理\玩家</Filter>
     </ClCompile>
+    <ClCompile Include="Human_Chat.cpp">
+      <Filter>功能处理\玩家</Filter>
+    </ClCompile>
     <ClCompile Include="Human_Community.cpp">
       <Filter>功能处理\玩家</Filter>
     </ClCompile>
@@ -180,13 +162,22 @@
     <ClCompile Include="Human_Msg.cpp">
       <Filter>功能处理\玩家</Filter>
     </ClCompile>
+    <ClCompile Include="Human_PK.cpp">
+      <Filter>功能处理\玩家</Filter>
+    </ClCompile>
     <ClCompile Include="Human_Pet.cpp">
+      <Filter>功能处理\玩家</Filter>
+    </ClCompile>
+    <ClCompile Include="Human_Shop.cpp">
       <Filter>功能处理\玩家</Filter>
     </ClCompile>
     <ClCompile Include="Human_Skill.cpp">
       <Filter>功能处理\玩家</Filter>
     </ClCompile>
     <ClCompile Include="Human_Task.cpp">
+      <Filter>功能处理\玩家</Filter>
+    </ClCompile>
+    <ClCompile Include="Human_Trade.cpp">
       <Filter>功能处理\玩家</Filter>
     </ClCompile>
     <ClCompile Include="HumanPlayer.cpp">
@@ -492,18 +483,6 @@
     <ClCompile Include="BotContext.cpp">
       <Filter>机器人</Filter>
     </ClCompile>
-    <ClCompile Include="AliveComponentsManager.cpp">
-      <Filter>ECS管理\组件管理</Filter>
-    </ClCompile>
-    <ClCompile Include="MonsterComponentManager.cpp">
-      <Filter>ECS管理\组件管理</Filter>
-    </ClCompile>
-    <ClCompile Include="NpcComponentManager.cpp">
-      <Filter>ECS管理\组件管理</Filter>
-    </ClCompile>
-    <ClCompile Include="PlayerComponentManager.cpp">
-      <Filter>ECS管理\组件管理</Filter>
-    </ClCompile>
     <ClCompile Include="BotBehaviorAction.cpp">
       <Filter>机器人</Filter>
     </ClCompile>
@@ -515,6 +494,12 @@
     </ClCompile>
     <ClCompile Include="BotBehaviorDecorator.cpp">
       <Filter>机器人</Filter>
+    </ClCompile>
+    <ClCompile Include="Human_OnFunc.cpp">
+      <Filter>功能处理\玩家</Filter>
+    </ClCompile>
+    <ClCompile Include="Human_DoProcess.cpp">
+      <Filter>功能处理\玩家</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -809,9 +794,6 @@
     <ClInclude Include="FengHaoGrowManager.h">
       <Filter>功能处理\功能\封号时长</Filter>
     </ClInclude>
-    <ClInclude Include="VMProtectHelper.h">
-      <Filter>架构基础</Filter>
-    </ClInclude>
     <ClInclude Include="gsClientObj.h">
       <Filter>功能处理\玩家\客户端消息</Filter>
     </ClInclude>
@@ -845,99 +827,6 @@
     <ClInclude Include="BotContext.h">
       <Filter>机器人</Filter>
     </ClInclude>
-    <ClInclude Include="ECS.h">
-      <Filter>库包相关\ECS</Filter>
-    </ClInclude>
-    <ClInclude Include="ECSComponentPool.h">
-      <Filter>库包相关\ECS</Filter>
-    </ClInclude>
-    <ClInclude Include="ECSDefines.h">
-      <Filter>库包相关\ECS</Filter>
-    </ClInclude>
-    <ClInclude Include="ECSRegistry.h">
-      <Filter>库包相关\ECS</Filter>
-    </ClInclude>
-    <ClInclude Include="ECSView.h">
-      <Filter>库包相关\ECS</Filter>
-    </ClInclude>
-    <ClInclude Include="RateLimitComponent.h">
-      <Filter>功能处理\玩家\组件</Filter>
-    </ClInclude>
-    <ClInclude Include="ShieldStateComponent.h">
-      <Filter>功能处理\玩家\组件</Filter>
-    </ClInclude>
-    <ClInclude Include="SpecialEquipComponent.h">
-      <Filter>功能处理\玩家\组件</Filter>
-    </ClInclude>
-    <ClInclude Include="StaminaComponent.h">
-      <Filter>功能处理\玩家\组件</Filter>
-    </ClInclude>
-    <ClInclude Include="TimerComponent.h">
-      <Filter>ECS管理\组件公共</Filter>
-    </ClInclude>
-    <ClInclude Include="ECSWorld.h">
-      <Filter>ECS管理</Filter>
-    </ClInclude>
-    <ClInclude Include="AliveComponentsManager.h">
-      <Filter>ECS管理\组件管理</Filter>
-    </ClInclude>
-    <ClInclude Include="MonsterComponentManager.h">
-      <Filter>ECS管理\组件管理</Filter>
-    </ClInclude>
-    <ClInclude Include="PlayerComponentManager.h">
-      <Filter>ECS管理\组件管理</Filter>
-    </ClInclude>
-    <ClInclude Include="AchievementComponent.h">
-      <Filter>功能处理\玩家\组件</Filter>
-    </ClInclude>
-    <ClInclude Include="ChatComponent.h">
-      <Filter>功能处理\玩家\组件</Filter>
-    </ClInclude>
-    <ClInclude Include="FenghaoComponent.h">
-      <Filter>功能处理\玩家\组件</Filter>
-    </ClInclude>
-    <ClInclude Include="MarketComponent.h">
-      <Filter>功能处理\玩家\组件</Filter>
-    </ClInclude>
-    <ClInclude Include="MiscStateComponent.h">
-      <Filter>功能处理\玩家\组件</Filter>
-    </ClInclude>
-    <ClInclude Include="PkComponent.h">
-      <Filter>功能处理\玩家\组件</Filter>
-    </ClInclude>
-    <ClInclude Include="ScriptVarComponent.h">
-      <Filter>功能处理\玩家\组件</Filter>
-    </ClInclude>
-    <ClInclude Include="SocialComponent.h">
-      <Filter>功能处理\玩家\组件</Filter>
-    </ClInclude>
-    <ClInclude Include="TaskComponent.h">
-      <Filter>功能处理\玩家\组件</Filter>
-    </ClInclude>
-    <ClInclude Include="TitleComponent.h">
-      <Filter>功能处理\玩家\组件</Filter>
-    </ClInclude>
-    <ClInclude Include="RecalcCacheComponent.h">
-      <Filter>功能处理\玩家\组件</Filter>
-    </ClInclude>
-    <ClInclude Include="ZhenBaoComponent.h">
-      <Filter>功能处理\玩家\组件</Filter>
-    </ClInclude>
-    <ClInclude Include="UpgradeItemComponent.h">
-      <Filter>功能处理\玩家\组件</Filter>
-    </ClInclude>
-    <ClInclude Include="MonsterStateComponent.h">
-      <Filter>功能处理\怪物\组件</Filter>
-    </ClInclude>
-    <ClInclude Include="PetComponent.h">
-      <Filter>功能处理\怪物\组件</Filter>
-    </ClInclude>
-    <ClInclude Include="NpcComponentManager.h">
-      <Filter>ECS管理\组件管理</Filter>
-    </ClInclude>
-    <ClInclude Include="NpcStateComponent.h">
-      <Filter>功能处理\NPC\组件</Filter>
-    </ClInclude>
     <ClInclude Include="BotBehaviorAction.h">
       <Filter>机器人</Filter>
     </ClInclude>
@@ -952,8 +841,8 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\Docs\ECS_使用手册.md">
-      <Filter>库包相关\ECS</Filter>
+    <None Include="HumanPlayer.inl">
+      <Filter>功能处理\玩家</Filter>
     </None>
   </ItemGroup>
 </Project>

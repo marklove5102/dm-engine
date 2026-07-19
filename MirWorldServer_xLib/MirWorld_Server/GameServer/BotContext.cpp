@@ -10,10 +10,15 @@
 
 // ============================================================================
 // 目标查询 - 搜索视野范围内最近的怪物
+// 优化: 局部缓存 bot 坐标, 合并 IsTargetValid 的 Distance8 调用消除重复计算
 // ============================================================================
 CAliveObject* CBotContext::FindNearestMonster(int nRange)
 {
 	if (!m_pBot) return nullptr;
+
+	// 局部缓存 bot 坐标, 避免循环内重复 this 间接访问
+	const int botX = m_pBot->getX();
+	const int botY = m_pBot->getY();
 
 	CAliveObject* pBestTarget = nullptr;
 	int nBestDist = nRange + 1;
@@ -21,26 +26,24 @@ CAliveObject* CBotContext::FindNearestMonster(int nRange)
 	xListHost<VISIBLE_OBJECT>* pList = m_pBot->GetVisibleObjectList();
 	if (pList && pList->getCount() > 0)
 	{
-		xListHost<VISIBLE_OBJECT>::xListNode* pNode = pList->getHead();
-		while (pNode)
+		xListHelper<VISIBLE_OBJECT> helper(pList);
+		for (VISIBLE_OBJECT* pVO = helper.first(); pVO != nullptr; pVO = helper.next())
 		{
-			VISIBLE_OBJECT* pVO = pNode->getObject();
-			if (pVO && pVO->pObject && pVO->pObject->GetType() == OBJ_MONSTER)
+			if (!pVO || !pVO->pObject) continue;
+			if (pVO->pObject->GetType() != OBJ_MONSTER) continue;
+			CAliveObject* pMonster = static_cast<CAliveObject*>(pVO->pObject);
+			if (pMonster->IsDeath()) continue;
+
+			// 单次 Distance8 替代原来的 IsTargetValid(Distance8) + 循环内 Distance8 双重计算
+			int dist = CBotHumanBehavior::Distance8(botX, botY,
+				pMonster->getX(), pMonster->getY());
+			if (dist > BOT_VIEW_RANGE) continue;
+
+			if (dist < nBestDist)
 			{
-				CAliveObject* pMonster = static_cast<CAliveObject*>(pVO->pObject);
-				if (IsTargetValid(pMonster))
-				{
-					int dist = CBotHumanBehavior::Distance8(
-						m_pBot->getX(), m_pBot->getY(),
-						pMonster->getX(), pMonster->getY());
-					if (dist < nBestDist)
-					{
-						nBestDist = dist;
-						pBestTarget = pMonster;
-					}
-				}
+				nBestDist = dist;
+				pBestTarget = pMonster;
 			}
-			pNode = pNode->getNext();
 		}
 	}
 
@@ -61,8 +64,9 @@ CAliveObject* CBotContext::FindNearestMonster(int nRange)
 // ============================================================================
 VOID CBotContext::PrecomputeTarget()
 {
-	// 目标缓存间隔保护：100ms内不重复全量扫描
-	if (m_dwFrameTime - m_dwTargetUpdateTime < 100)
+	// 目标缓存间隔保护：200ms内不重复全量扫描
+	// (从100ms提升至200ms, 配合自适应思考间隔进一步降低CPU开销)
+	if (m_dwFrameTime - m_dwTargetUpdateTime < 200)
 		return;
 
 	// 如果机器人已有锁定目标（通过OnDamage等SetTarget设置），直接使用，不搜索新怪

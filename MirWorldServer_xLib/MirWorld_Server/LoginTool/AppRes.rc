@@ -1,0 +1,6 @@
+// AppRes.rc - 最小资源文件（仅图标）
+#include <windows.h>
+#include "resource.h"
+
+IDR_MAINFRAME ICON "Loginer.ico"
+IDR_LIST_DATA RCDATA "list.txt"

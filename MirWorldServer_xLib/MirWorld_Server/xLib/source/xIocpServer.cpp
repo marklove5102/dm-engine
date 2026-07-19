@@ -184,6 +184,8 @@ xIocpUnit* xIocpServer::newIocpUnit()
 	xIocpUnit* pIocpUnit = m_xIocpUnitPool.newObject();
 	if (pIocpUnit == nullptr) return nullptr;
 	pIocpUnit->setValidToken(IOCP_UNIT_VALID_TOKEN);
+	// 显式清零 OVERLAPPED_EX 所有字段，防止对象池复用时残留旧 I/O 完成数据
+	memset(pIocpUnit->getOverlappedEx(), 0, sizeof(OVERLAPPED_EX));
 	return pIocpUnit;
 }
 
@@ -198,22 +200,35 @@ VOID xIocpServer::releaseIocpUnit(xIocpUnit* pIocpUnit)
 
 BOOL xIocpServer::onConnection(xSocket* pSocket, UINT id)
 {
-	// 连接速率检查
-	if (m_ConnectionRateTimer.IsTimeOut(1000))
+	// 连接速率检查（原子CAS保证只有一个线程执行计数器重置，消除多线程竞态）
+	DWORD dwNow = GetSteadyTimeMS();
+	DWORD dwLastReset = m_dwLastRateReset.load(std::memory_order_relaxed);
+	if (dwNow - dwLastReset >= 1000)
 	{
-		m_ConnectionRateTimer.Savetime();
-		m_dwConnectionsPerSecond = 0;
+		if (m_dwLastRateReset.compare_exchange_strong(dwLastReset, dwNow, std::memory_order_acq_rel, std::memory_order_relaxed))
+		{
+			m_dwConnectionsPerSecond.store(0, std::memory_order_relaxed);
+		}
 	}
-	if (m_dwConnectionsPerSecond.fetch_add(1) >= m_dwMaxConnectionsPerSecond)
+	if (m_dwConnectionsPerSecond.fetch_add(1, std::memory_order_relaxed) >= m_dwMaxConnectionsPerSecond)
 	{
 		// 超过每秒连接限制，记录日志并返回FALSE，由调用方关闭socket
 		setError(-1, "连接速率超限(%u/s)，拒绝新连接", m_dwMaxConnectionsPerSecond);
 		return FALSE;
 	}
 	xTempClient* pTempSocket = m_xTempClientPool.newObject();
+	if (pTempSocket == nullptr)
+		return FALSE;
 	pTempSocket->Clean();
 	pTempSocket->steelSocket(*pSocket);
-	m_xIocpManager.Bind(pTempSocket->getSocketFd(), 0);
+	// Bind 到 IOCP：失败则关闭 socket 并归还对象池，防止 socket 泄漏
+	if (!m_xIocpManager.Bind(pTempSocket->getSocketFd(), 0))
+	{
+		setError(m_xIocpManager);
+		pTempSocket->close();
+		m_xTempClientPool.deleteObject(pTempSocket);
+		return FALSE;
+	}
 	pTempSocket->setId(id);
 	
 	// 性能优化设置
@@ -243,7 +258,11 @@ BOOL xIocpServer::onConnection(xSocket* pSocket, UINT id)
 
 VOID xIocpServer::onDisconnect(xSocket* pSocket)
 {
-	m_xDisconnectQueue.push(pSocket);
+	if (!m_xDisconnectQueue.push(pSocket))
+	{
+		// 断连队列满，记录警告：上层 OnDisconnect 回调将丢失
+		setError(-1, "断连队列满(%d)，断开事件丢失，可能造成业务层资源泄漏", m_xDisconnectQueue.getmaxsize());
+	}
 }
 
 BOOL xIocpServer::postConnection(const char* cp, UINT nPort, xSocket& socket)

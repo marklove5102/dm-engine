@@ -5,13 +5,11 @@
 
 VOID CHumanPlayer::InitAchievement(int nCount)
 {
-	auto* ac = GetAchieveComp();
-	if (!ac) return; // 构造期间ECS组件尚未创建, 安全跳过
-	ac->Data.btLevel = 0;
-	ac->Data.dwExp = 0;
-	ac->Data.btStatus.assign(nCount, 0);
-	ac->Data.btRecentCount.assign(nCount, 0);
-	ac->Data.dwCompleteTime.assign(nCount, 0);
+	m_Achievement.btLevel = 0;
+	m_Achievement.dwExp = 0;
+	m_Achievement.btStatus.assign(nCount, 0);
+	m_Achievement.btRecentCount.assign(nCount, 0);
+	m_Achievement.dwCompleteTime.assign(nCount, 0);
 }
 
 BOOL CHumanPlayer::ChangeAchieveGroupExp(BYTE btGroupId, BYTE btType, DWORD btRecentCount)
@@ -28,8 +26,8 @@ BOOL CHumanPlayer::ChangeAchieveGroupExp(BYTE btGroupId, BYTE btType, DWORD btRe
 		const int pIndex = CTimeAchieve::GetInstance()->FindIndexById(pAchieveItem->nId);
 		if (pAchieveItem == nullptr || pIndex == -1) continue;
 		// 检查成就是否已完成或已领取
-		if (_achievement().btStatus[pIndex] >= 1) continue;
-		DWORD& refCount = _achievement().btRecentCount[pIndex];
+		if (m_Achievement.btStatus[pIndex] >= 1) continue;
+		DWORD& refCount = m_Achievement.btRecentCount[pIndex];
 		switch (btType)
 		{
 		case 0:
@@ -45,11 +43,11 @@ BOOL CHumanPlayer::ChangeAchieveGroupExp(BYTE btGroupId, BYTE btType, DWORD btRe
 		break;
 		}
 		// 检查是否达到完成条件
-		if (pAchieveItem->nMaxExp > 0 && _achievement().btRecentCount[pIndex] >= (DWORD)pAchieveItem->nMaxExp)
+		if (pAchieveItem->nMaxExp > 0 && m_Achievement.btRecentCount[pIndex] >= (DWORD)pAchieveItem->nMaxExp)
 		{
-			_achievement().dwExp += pAchieveItem->nPoint; // 增加成就点
-			_achievement().btStatus[pIndex] = 1; // 标记为可领取
-			_achievement().dwCompleteTime[pIndex] = dwNow; // 设置完成时间戳
+			m_Achievement.dwExp += pAchieveItem->nPoint; // 增加成就点
+			m_Achievement.btStatus[pIndex] = 1; // 标记为可领取
+			m_Achievement.dwCompleteTime[pIndex] = dwNow; // 设置完成时间戳
 			setSParam(0, pAchieveItem->szName.data()); // 成就名
 			setVParam(1, nIndex); // 成就ID
 			CSystemScript::GetInstance()->Execute(GetScriptTarget(), "成就系统.完成奖励");
@@ -67,8 +65,8 @@ BOOL CHumanPlayer::ChangeAchieveExp(WORD wId, BYTE btType, DWORD btRecentCount)
 	const int pIndex = CTimeAchieve::GetInstance()->FindIndexById(wId);
 	if (pAchieveItem == nullptr || pIndex == -1) return FALSE;
 	// 检查成就是否已完成或已领取
-	if (_achievement().btStatus[pIndex] >= 1) return FALSE;
-	DWORD& refCount = _achievement().btRecentCount[pIndex];
+	if (m_Achievement.btStatus[pIndex] >= 1) return FALSE;
+	DWORD& refCount = m_Achievement.btRecentCount[pIndex];
 	switch (btType)
 	{
 	case 0:
@@ -86,10 +84,10 @@ BOOL CHumanPlayer::ChangeAchieveExp(WORD wId, BYTE btType, DWORD btRecentCount)
 	// 检查是否达到完成条件
 	if (pAchieveItem->nMaxExp > 0 && refCount >= (DWORD)pAchieveItem->nMaxExp)
 	{
-		_achievement().dwExp += pAchieveItem->nPoint; // 增加成就点
-		_achievement().btStatus[pIndex] = 1; // 标记为可领取
+		m_Achievement.dwExp += pAchieveItem->nPoint; // 增加成就点
+		m_Achievement.btStatus[pIndex] = 1; // 标记为可领取
 		DWORD dwNow = GetUnixTimeSec();
-		_achievement().dwCompleteTime[pIndex] = dwNow; // 设置完成时间戳
+		m_Achievement.dwCompleteTime[pIndex] = dwNow; // 设置完成时间戳
 		setSParam(0, pAchieveItem->szName.data()); // 成就名
 		setVParam(1, wId); // 成就ID
 		CSystemScript::GetInstance()->Execute(GetScriptTarget(), "成就系统.完成奖励");
@@ -102,7 +100,7 @@ BOOL CHumanPlayer::SetAchieveState(WORD wId, BYTE btStatu)
 {
 	const int pIndex = CTimeAchieve::GetInstance()->FindIndexById(wId);
 	if (pIndex == -1) return FALSE;
-	_achievement().btStatus[pIndex] = btStatu;
+	m_Achievement.btStatus[pIndex] = btStatu;
 	return TRUE;
 }
 
@@ -110,7 +108,7 @@ BOOL CHumanPlayer::SetAchieveTime(WORD wId, DWORD dwTime)
 {
 	const int pIndex = CTimeAchieve::GetInstance()->FindIndexById(wId);
 	if (pIndex == -1) return FALSE;
-	_achievement().dwCompleteTime[pIndex] = dwTime;
+	m_Achievement.dwCompleteTime[pIndex] = dwTime;
 	return TRUE;
 }
 
@@ -145,55 +143,55 @@ BOOL CHumanPlayer::SendGotAchieve(WORD wId)
 BOOL CHumanPlayer::ChangeAchievePoint(BYTE btType, DWORD dwExp)
 {
 	
-	DWORD dwMaxExp = CTimeAchieve::GetInstance()->GetLevelMaxExp(_achievement().btLevel);
+	DWORD dwMaxExp = CTimeAchieve::GetInstance()->GetLevelMaxExp(m_Achievement.btLevel);
 	if (dwMaxExp == -1) return FALSE;
 	switch (btType)
 	{
 	case 0:
-		_achievement().dwExp += dwExp;
+		m_Achievement.dwExp += dwExp;
 		break;
 	case 1:
-		_achievement().dwExp -= dwExp;
+		m_Achievement.dwExp -= dwExp;
 		break;
 	case 2:
-		_achievement().dwExp = dwExp;
+		m_Achievement.dwExp = dwExp;
 		break;
 	}
 	// 检查是否达到升级条件
-	if (_achievement().dwExp >= dwMaxExp)
+	if (m_Achievement.dwExp >= dwMaxExp)
 	{
-		_achievement().dwExp = 0;
-		_achievement().btLevel++;
-		SaySystem("恭喜您，成就等级提升到 %u 级!", _achievement().btLevel);
+		m_Achievement.dwExp = 0;
+		m_Achievement.btLevel++;
+		SaySystem("恭喜您，成就等级提升到 %u 级!", m_Achievement.btLevel);
 	}
 	return TRUE;
 }
 
-DWORD CHumanPlayer::GetAchieveExpById(WORD wId)
+DWORD CHumanPlayer::GetAchieveExpById(WORD wId) const
 {
 	const int pIndex = CTimeAchieve::GetInstance()->FindIndexById(wId);
 	if (pIndex == -1) return 0;
-	return _achievement().btRecentCount[pIndex];
+	return m_Achievement.btRecentCount[pIndex];
 }
 
-BYTE CHumanPlayer::GetAchieveStateById(WORD wId)
+BYTE CHumanPlayer::GetAchieveStateById(WORD wId) const
 {
 	const int pIndex = CTimeAchieve::GetInstance()->FindIndexById(wId);
 	if (pIndex == -1) return 0;
-	return _achievement().btStatus[pIndex];
+	return m_Achievement.btStatus[pIndex];
 }
 
-DWORD CHumanPlayer::GetAchieveCompleteTimeById(WORD wId)
+DWORD CHumanPlayer::GetAchieveCompleteTimeById(WORD wId) const
 {
 	const int pIndex = CTimeAchieve::GetInstance()->FindIndexById(wId);
 	if (pIndex == -1) return 0;
-	return _achievement().dwCompleteTime[pIndex];
+	return m_Achievement.dwCompleteTime[pIndex];
 }
 
 VOID CHumanPlayer::CheckAchieveLevelUp() 
 {
-	BYTE& refLevel = _achievement().btLevel;
-	DWORD& refExp = _achievement().dwExp;
+	BYTE& refLevel = m_Achievement.btLevel;
+	DWORD& refExp = m_Achievement.dwExp;
 	DWORD dwMaxExp = CTimeAchieve::GetInstance()->GetLevelMaxExp(refLevel);
 	if (dwMaxExp == -1) return;
 	while (refExp >= dwMaxExp)
@@ -214,7 +212,7 @@ VOID CHumanPlayer::PacketAchieve(xPacket& packet, BYTE btType, DWORD nAchieveCou
 	{
 		for (DWORD i = 0; i < nAchieveCount; i++)
 		{
-			DWORD dwStatus = (DWORD)_achievement().btStatus[i];
+			DWORD dwStatus = (DWORD)m_Achievement.btStatus[i];
 			packet.push(&dwStatus, 4);
 		}
 	}
@@ -222,13 +220,13 @@ VOID CHumanPlayer::PacketAchieve(xPacket& packet, BYTE btType, DWORD nAchieveCou
 	case 1:// i=1时,近期获得成就
 	{
 		for (DWORD i = 0; i < nAchieveCount; i++)
-			packet.push(&_achievement().btRecentCount[i], 4);
+			packet.push(&m_Achievement.btRecentCount[i], 4);
 	}
 	break;
 	case 2:// i=2时,完成时间戳
 	{
 		for (DWORD i = 0; i < nAchieveCount; i++)
-			packet.push(&_achievement().dwCompleteTime[i], 4);
+			packet.push(&m_Achievement.dwCompleteTime[i], 4);
 	}
 	break;
 	}

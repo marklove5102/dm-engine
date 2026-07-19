@@ -169,7 +169,7 @@ DEFINE_SCRIPT_FUNCTION(DELAY){
 	std::array<char, 256> szPage{};
 	char* p = strchr(Params[1].pszParam, '.');
 	if (p == nullptr && pShell->GetTitleId() == (UINT)-1)
-		sprintf(szPage.data(), "@%s.%s", pTarget->getCurScriptObject()->getName(), Params[1].pszParam);
+		snprintf(szPage.data(), szPage.size(), "@%s.%s", pTarget->getCurScriptObject()->getName(), Params[1].pszParam);
 	else
 		o_strncpy(szPage.data(), Params[1].pszParam, 250);
 	pPlayer->AddProcess(EP_OPENSCRIPTPAGE, pShell->GetTitleId(), 0, 0, 0, seconds * 1000, 1, szPage.data());
@@ -189,7 +189,7 @@ DEFINE_SCRIPT_FUNCTION(GOTO){
 		{
 			char* p = strchr(Params[0].pszParam, '.');
 			if (p == nullptr)
-				sprintf(szPage.data(), "@%s.%s", pTarget->getCurScriptObject()->getName(), Params[0].pszParam);
+				snprintf(szPage.data(), szPage.size(), "@%s.%s", pTarget->getCurScriptObject()->getName(), Params[0].pszParam);
 			else
 				o_strncpy(szPage.data(), Params[0].pszParam, 250);
 		}
@@ -922,8 +922,10 @@ DEFINE_SCRIPT_FUNCTION(MONGEN){
 	}
 	CMonsterGenManager* monGenManager = CMonsterGenManager::GetInstance();
 	std::array<char, 128> szTemp{};
-	sprintf_s(szTemp.data(), szTemp.size(), "%s,%u,%u,%u,%u,%u,%u,%s", pMonsterName, mapid, x, y, r, c, 0, Params[6].pszParam);
+	const char* pszScriptPage = (nParam > 6) ? Params[6].pszParam : "";
+	sprintf_s(szTemp.data(), szTemp.size(), "%s,%u,%u,%u,%u,%u,%u,%s", pMonsterName, mapid, x, y, r, c, 0, pszScriptPage);
 	MONSTERGEN* monGen = monGenManager->AddMonsterGen(szTemp.data()); // 这个需要一个常驻刷怪配置, 因为特殊刷怪需要管理怪列表指针.
+	if (monGen == nullptr) return FALSE;
 	if (r <= 1000)
 	{
 		static CRandomRangeSpawnStrategy strategy;
@@ -1170,7 +1172,7 @@ DEFINE_SCRIPT_FUNCTION(INC){
 	else
 		nValue++;
 	std::array<char, 20> szBuffer{};
-	sprintf(szBuffer.data(), "%u", nValue);
+	snprintf(szBuffer.data(), szBuffer.size(), "%u", nValue);
 	pTarget->SetVariableValue(Params[0].pszParam, szBuffer.data());
 }END_SCRIPT_FUNCTION
 
@@ -1189,7 +1191,7 @@ DEFINE_SCRIPT_FUNCTION(DEC){
 	else
 		nValue--;
 	std::array<char, 20> szBuffer{};
-	sprintf(szBuffer.data(), "%u", nValue);
+	snprintf(szBuffer.data(), szBuffer.size(), "%u", nValue);
 	pTarget->SetVariableValue(Params[0].pszParam, szBuffer.data());
 }END_SCRIPT_FUNCTION
 
@@ -1208,7 +1210,7 @@ DEFINE_SCRIPT_FUNCTION(MUL) {
 	else
 		nValue *= 2;
 	std::array<char, 20> szBuffer{};
-	sprintf(szBuffer.data(), "%u", nValue);
+	snprintf(szBuffer.data(), szBuffer.size(), "%u", nValue);
 	pTarget->SetVariableValue(Params[0].pszParam, szBuffer.data());
 }END_SCRIPT_FUNCTION
 
@@ -1227,7 +1229,7 @@ DEFINE_SCRIPT_FUNCTION(DIV) {
 	else
 		nValue /= 2;
 	std::array<char, 20> szBuffer{};
-	sprintf(szBuffer.data(), "%u", nValue);
+	snprintf(szBuffer.data(), szBuffer.size(), "%u", nValue);
 	pTarget->SetVariableValue(Params[0].pszParam, szBuffer.data());
 }END_SCRIPT_FUNCTION
 
@@ -1285,7 +1287,7 @@ DEFINE_SCRIPT_FUNCTION(INPUTTEXT){
 	{
 		char* p = strchr(Params[2].pszParam, '.');
 		if (p == nullptr)
-			sprintf(szPage.data(), "@%s.%s", pTarget->getCurScriptObject()->getName(), Params[2].pszParam);
+			snprintf(szPage.data(), szPage.size(), "@%s.%s", pTarget->getCurScriptObject()->getName(), Params[2].pszParam);
 		else
 			o_strncpy(szPage.data(), Params[2].pszParam, 250);
 	}
@@ -1578,7 +1580,7 @@ DEFINE_SCRIPT_FUNCTION(MULTICHECKMAPHUM){
 		if (CompareValue(nCount, Params[3].pszParam, Params[4].nParam))
 		{
 			std::array<char, 20> szValue{};
-			sprintf(szValue.data(), "%u", nMapId);
+			snprintf(szValue.data(), szValue.size(), "%u", nMapId);
 			pTarget->SetVariableValue(Params[0].pszParam, szValue.data());
 			return 1;
 		}
@@ -1731,7 +1733,7 @@ DEFINE_SCRIPT_FUNCTION(SYSTEMDELAY){
 	std::array<char, 256> szPage{};
 	char* p = strchr(Params[1].pszParam, '.');
 	if (p == nullptr && pShell->GetTitleId() == (UINT)-1)
-		sprintf(szPage.data(), "@%s.%s", pTarget->getCurScriptObject()->getName(), Params[1].pszParam);
+		snprintf(szPage.data(), szPage.size(), "@%s.%s", pTarget->getCurScriptObject()->getName(), Params[1].pszParam);
 	else
 		o_strncpy(szPage.data(), Params[1].pszParam, 250);
 	CHumanPlayer* pTargetP = CAutoScriptManager::GetInstance()->GetScriptTarget();

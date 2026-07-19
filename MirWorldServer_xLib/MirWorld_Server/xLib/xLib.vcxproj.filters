@@ -53,9 +53,6 @@
     <ClInclude Include="header\xListenObject.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="header\xMtVerify.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="header\xNameCheck.h">
       <Filter>头文件</Filter>
     </ClInclude>

@@ -13,13 +13,13 @@ public:
 	CFireNimoBurnEvent(const CFireNimoBurnEvent&) = delete;           // 禁止拷贝构造
 	CFireNimoBurnEvent& operator=(const CFireNimoBurnEvent&) = delete; // 禁止拷贝赋值
 	// 事件更新处理
-	VOID OnUpdate(CVisibleEvent* pEvent);
+	VOID OnUpdate(CVisibleEvent* pEvent) override;
 	// 事件关闭处理
-	VOID OnClose(CVisibleEvent* pEvent);
+	VOID OnClose(CVisibleEvent* pEvent) override;
 	// 销毁逆魔火墙事件
 	VOID Destroy();
 	// 更新事件状态
-	VOID Update();
+	VOID Update() override;
 	// 创建火墙事件
 	// pOwner: 事件所有者
 	// x,y: 事件位置

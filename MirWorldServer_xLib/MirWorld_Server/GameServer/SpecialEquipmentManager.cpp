@@ -70,7 +70,7 @@ VOID CSpecialEquipmentManager::LoadSpecialEquipmentFunction(const char* pszFilen
 		if (groupcount == 0)continue;
 		for (int i = 0; i < groupcount; i++)
 		{
-			sprintf(szGroupname, "Group%u", i + 1);
+			snprintf(szGroupname, 20, "Group%u", i + 1);
 			char* p = (char*)sf.GetString(g_special_equipment_table[t], szGroupname, nullptr);
 			if (p == nullptr)continue;
 			nElementCount += countStringChar(p, '&') + 1;
@@ -105,7 +105,7 @@ VOID CSpecialEquipmentManager::LoadSpecialEquipmentFunction(const char* pszFilen
 		int groupindex = 0;
 		for (int i = 0; i < groupcount; i++)
 		{
-			sprintf(szGroupname, "Group%u", i + 1);
+			snprintf(szGroupname, 20, "Group%u", i + 1);
 			char* p = (char*)sf.GetString(g_special_equipment_table[t], szGroupname, nullptr);
 			if (p == nullptr)continue;
 			groupindex++;

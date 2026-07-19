@@ -115,17 +115,17 @@ BOOL CSandCity::Init()
 	char* pszName = nullptr;
 	for (int i = 0; i < 12; i++)
 	{
-		sprintf(szValueName, "Archer_%d_X", i + 1);
+		snprintf(szValueName, 128, "Archer_%d_X", i + 1);
 		x = sf.GetInteger("Defense", szValueName, -1);
-		sprintf(szValueName, "Archer_%d_Y", i + 1);
+		snprintf(szValueName, 128, "Archer_%d_Y", i + 1);
 		y = sf.GetInteger("Defense", szValueName, -1);
-		sprintf(szValueName, "Archer_%d_Name", i + 1);
+		snprintf(szValueName, 128, "Archer_%d_Name", i + 1);
 		pszName = (char*)sf.GetString("Defense", szValueName, nullptr);
 
 		if (x == -1 || y == -1 || pszName == nullptr)continue;
 
 		m_pArchers[iArcherCount] = std::make_unique<CSCArcher>();
-		sprintf(szValueName, "Archer_%d_Hp", i + 1);
+		snprintf(szValueName, 128, "Archer_%d_Hp", i + 1);
 		if (!m_pArchers[iArcherCount]->Init(pszName, mapid, x, y, sf.GetInteger("Defense", szValueName, 0)))
 		{
 			m_pArchers[iArcherCount].reset();
@@ -179,7 +179,7 @@ BOOL CSandCity::Init()
 					if (m_SabukMaster.szName[0] != 0 && m_pOwnerGuild != nullptr)
 					{
 						char szName[128];
-						sprintf(szName, "%s\\%s\\%s\\", m_pSabukMaster->GetName(), m_pOwnerGuild->GetName(), m_SabukMaster.szName);
+						snprintf(szName, 128, "%s\\%s\\%s\\", m_pSabukMaster->GetName(), m_pOwnerGuild->GetName(), m_SabukMaster.szName);
 						m_pSabukMaster->SetLongName(szName);
 						m_pSabukMaster->SendChangeName();
 						int index = m_SabukMaster.btClass * 2 + m_SabukMaster.btSex;
@@ -211,9 +211,9 @@ BOOL CSandCity::StartWar()
 	m_pMainGate->SetSystemFlag(SF_NODAMAGE, FALSE);
 	char szText[1024];
 	if (m_pOwnerGuild)
-		sprintf(szText, "攻城战开始, 守城方为 %s!", m_pOwnerGuild->GetName());
+		snprintf(szText, 1024, "攻城战开始, 守城方为 %s!", m_pOwnerGuild->GetName());
 	else
-		sprintf(szText, "攻城战开始, 没有守城方!");
+		snprintf(szText, 1024, "攻城战开始, 没有守城方!");
 
 	CGameWorld::GetInstance()->PostSystemMessage(szText);
 
@@ -225,7 +225,7 @@ BOOL CSandCity::StartWar()
 		if (m_pWarGuild[i])
 		{
 			m_pWarGuild[i]->SetAttackSabuk(TRUE);
-			sprintf(szText, "%s 的攻城战斗开始!", m_pWarGuild[i]->GetName());
+			snprintf(szText, 1024, "%s 的攻城战斗开始!", m_pWarGuild[i]->GetName());
 			CGameWorld::GetInstance()->PostSystemMessage(szText, i * 500 + 1000);
 		}
 	}
@@ -404,7 +404,7 @@ VOID CSandCity::ChangeOwner(CGuildEx* pOwner)
 	if (pOwner)
 	{
 		char szText[1024];
-		sprintf(szText, "沙城被 %s 行会取得!", pOwner->GetName());
+		snprintf(szText, 1024, "沙城被 %s 行会取得!", pOwner->GetName());
 		CGameWorld::GetInstance()->PostSystemMessage(szText);
 		pOwner->SetAttackSabuk(FALSE);
 		pOwner->RefreshMemberName();
@@ -470,8 +470,8 @@ VOID CSandCity::RepairWall(int index)
 
 VOID CSandCity::Save()
 {
-	FILE* fp = fopen(".\\Data\\GuildBase\\SabukW.txt", "w");
-	if (fp == nullptr)
+	FileGuard fp(fopen(".\\Data\\GuildBase\\SabukW.txt", "w"));
+	if (!fp)
 	{
 		PRINT(ERROR_RED, "无法打开 SabukW.txt, 沙城存储失败~!\n");
 		return;
@@ -528,7 +528,7 @@ VOID CSandCity::Save()
 			iArcherIdx + 1, pArcher->getX(), iArcherIdx + 1, pArcher->getY(), iArcherIdx + 1, pArcher->GetPropValue(PI_CURHP));
 		iArcherIdx++;
 	}
-	fclose(fp);
+	// fclose 由 FileGuard 析构自动完成
 }
 
 VOID CSandCity::Home(CHumanPlayer* pPlayer)
@@ -556,7 +556,7 @@ BOOL CSandCity::AddAttackRequest(CGuildEx* pGuild, BOOL bToday)
 		return FALSE;
 	}
 
-	char* pszGuild = (char*)pGuild->GetName();
+	const char* pszGuild = pGuild->GetName();
 	for (int i = 0; i < this->m_iAttackRequestCount; i++)
 	{
 		if (this->m_AttackRequest[i].pGuild == pGuild)
@@ -578,7 +578,8 @@ BOOL CSandCity::AddAttackRequest(CGuildEx* pGuild, BOOL bToday)
 	return TRUE;
 }
 
-static AttackSabukRequest g_AttackRequestT[100];
+// thread_local: 沙巴克攻城战准备可能在并行世界调用, 缓冲区改为线程局部存储。
+thread_local AttackSabukRequest g_AttackRequestT[100];
 VOID CSandCity::PrepareAttackGuild(CSystemTime& curTime)
 {
 	int count = 0;
@@ -615,8 +616,8 @@ VOID CSandCity::OnHourChange(CSystemTime& curTime)
 
 VOID CSandCity::SaveAttackRequest()
 {
-	FILE* fp = fopen(".\\Data\\GuildBase\\Attackreq.txt", "w");
-	if (fp == nullptr)
+	FileGuard fp(fopen(".\\Data\\GuildBase\\Attackreq.txt", "w"));
+	if (!fp)
 	{
 		setError(0x1000, "无法存储攻城请求!");
 		return;
@@ -626,7 +627,7 @@ VOID CSandCity::SaveAttackRequest()
 		fprintf(fp, "%s|\"%u-%u-%u\"\n", m_AttackRequest[i].pGuild->GetName(), m_AttackRequest[i].stTime.wYear,
 			m_AttackRequest[i].stTime.wMonth, m_AttackRequest[i].stTime.wDay);
 	}
-	fclose(fp);
+	// fclose 由 FileGuard 析构自动完成
 }
 
 VOID CSandCity::LoadAttackRequest()
@@ -726,7 +727,7 @@ BOOL CSandCity::SetSabukMaster(CHumanPlayer* m_pPlayer)
 	if (m_SabukMaster.szName[0] != 0)
 	{
 		char szName[128];
-		sprintf(szName, "%s\\%s\\%s\\", m_pSabukMaster->GetName(), m_pOwnerGuild->GetName(), m_SabukMaster.szName);
+		snprintf(szName, 128, "%s\\%s\\%s\\", m_pSabukMaster->GetName(), m_pOwnerGuild->GetName(), m_SabukMaster.szName);
 		m_pSabukMaster->SetLongName(szName);
 		m_pSabukMaster->SendChangeName();
 		int index = m_SabukMaster.btClass * 2 + m_SabukMaster.btSex;
@@ -743,7 +744,7 @@ VOID CSandCity::UpdateSabukMasterFigure()
 	if (m_SabukMaster.szName[0] != 0)
 	{
 		char szName[128];
-		sprintf(szName, "%s\\%s\\%s\\", m_pSabukMaster->GetName(), m_pOwnerGuild->GetName(), m_SabukMaster.szName);
+		snprintf(szName, 128, "%s\\%s\\%s\\", m_pSabukMaster->GetName(), m_pOwnerGuild->GetName(), m_SabukMaster.szName);
 		m_pSabukMaster->SetLongName(szName);
 		m_pSabukMaster->SendChangeName();
 		int index = m_SabukMaster.btClass * 2 + m_SabukMaster.btSex;

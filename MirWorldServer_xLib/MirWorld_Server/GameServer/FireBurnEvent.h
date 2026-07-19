@@ -12,13 +12,13 @@ public:
 	CFireBurnEvent(const CFireBurnEvent&) = delete;           // 禁止拷贝构造
 	CFireBurnEvent& operator=(const CFireBurnEvent&) = delete; // 禁止拷贝赋值
 	// 事件更新处理
-	VOID OnUpdate(CVisibleEvent* pEvent);
+	VOID OnUpdate(CVisibleEvent* pEvent) override;
 	// 事件关闭处理
-	VOID OnClose(CVisibleEvent* pEvent);
+	VOID OnClose(CVisibleEvent* pEvent) override;
 	// 销毁火焰燃烧事件
 	VOID Destroy();
 	// 更新事件状态
-	VOID Update();
+	VOID Update() override;
 	//VOID OnEnter( CVisibleEvent * pEvent, CMapObject * pObject );
 	//VOID OnCreate( CVisibleEvent * pEvent );
 

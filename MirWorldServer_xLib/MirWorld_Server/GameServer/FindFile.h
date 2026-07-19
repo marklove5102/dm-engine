@@ -1,5 +1,6 @@
 #pragma once
 #include <array>
+
 class CFindFile
 {
 public:
@@ -8,14 +9,14 @@ public:
 	BOOL StartFind(const char* pszPath, const char* pszFindName, BOOL bFindSubFolder = FALSE, UINT nParam = 0)
 	{
 		WIN32_FIND_DATA	wfd;
-		HANDLE hFindFile = INVALID_HANDLE_VALUE;
 		std::array<CHAR, 1024> szFileName{};
 		std::array<CHAR, 32> szExt{};
 		std::array<CHAR, 32> szExtTest{};
 		_makepath(szFileName.data(), nullptr, pszPath, "*.*", nullptr);
 		_splitpath(pszFindName, nullptr, nullptr, nullptr, szExt.data());
-		hFindFile = FindFirstFile(szFileName.data(), &wfd);
-		if (hFindFile != INVALID_HANDLE_VALUE)
+		// RAII: FindHandleGuard 析构自动 FindClose, 即使 OnFoundFile/递归 StartFind 中途返回或异常也不泄漏
+		FindHandleGuard hFindFile(FindFirstFile(szFileName.data(), &wfd));
+		if (hFindFile)
 		{
 			do {
 				if ((wfd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0)
@@ -39,7 +40,6 @@ public:
 					}
 				}
 			} while (FindNextFile(hFindFile, &wfd));
-			FindClose(hFindFile);
 		}
 		return TRUE;
 	}

@@ -11,14 +11,6 @@ CMarket::CMarket(UINT id)
 
 CMarket::~CMarket(VOID)
 {
-	for (UINT n = 0; n < this->m_nSubMarketCount; n++)
-	{
-		if (this->m_pSubMarketArray[n])
-		{
-			delete this->m_pSubMarketArray[n];
-			this->m_pSubMarketArray[n] = nullptr;
-		}
-	}
 }
 
 CSubMarket* CMarket::AddSubMarket(UINT nId, const char* pszName)
@@ -27,16 +19,15 @@ CSubMarket* CMarket::AddSubMarket(UINT nId, const char* pszName)
 		return nullptr;
 	std::array<char, 256> szFilename{};
 
-	this->m_pSubMarketArray[this->m_nSubMarketCount] = new CSubMarket(this->m_Id, nId, pszName);
+	this->m_pSubMarketArray[this->m_nSubMarketCount] = std::make_unique<CSubMarket>(this->m_Id, nId, pszName);
 
-	sprintf(szFilename.data(), ".\\Data\\Market\\%02u%02u.txt", this->m_Id, nId);
+	snprintf(szFilename.data(), szFilename.size(), ".\\Data\\Market\\%02u%02u.txt", this->m_Id, nId);
 	if (!this->m_pSubMarketArray[this->m_nSubMarketCount]->LoadSubMarket(szFilename.data()))
 	{
-		delete this->m_pSubMarketArray[this->m_nSubMarketCount];
-		this->m_pSubMarketArray[this->m_nSubMarketCount] = nullptr;
+		this->m_pSubMarketArray[this->m_nSubMarketCount].reset();
 		return nullptr;
 	}
-	return this->m_pSubMarketArray[this->m_nSubMarketCount++];
+	return this->m_pSubMarketArray[this->m_nSubMarketCount++].get();
 }
 
 CSubMarket* CMarket::GetSubMarket(UINT nId)
@@ -44,7 +35,7 @@ CSubMarket* CMarket::GetSubMarket(UINT nId)
 	for (UINT n = 0; n < this->m_nSubMarketCount; n++)
 	{
 		if (this->m_pSubMarketArray[n] && this->m_pSubMarketArray[n]->GetId() == nId)
-			return this->m_pSubMarketArray[n];
+			return this->m_pSubMarketArray[n].get();
 	}
 	return nullptr;
 }
@@ -52,13 +43,13 @@ CSubMarket* CMarket::GetSubMarket(UINT nId)
 VOID CMarket::SendSubMarket(CHumanPlayer* pPlayer)
 {
 	xPacketPool::ScopedPacket packet(65536);
-	sprintf((char*)packet->getbuf(), "%02u&", m_Id);
+	snprintf((char*)packet->getbuf(), 65536, "%02u&", m_Id);
 	packet->addsize((int)strlen(packet->getbuf()));
 	for (UINT n = 0; n < this->m_nSubMarketCount; n++)
 	{
 		if (this->m_pSubMarketArray[n])
 		{
-			sprintf((char*)packet->getfreebuf(), "%02u|%s&", this->m_pSubMarketArray[n]->GetId(), this->m_pSubMarketArray[n]->GetName());
+			snprintf((char*)packet->getfreebuf(), 65536 - packet->getsize(), "%02u|%s&", this->m_pSubMarketArray[n]->GetId(), this->m_pSubMarketArray[n]->GetName());
 			packet->addsize((int)strlen(packet->getfreebuf()));
 		}
 	}

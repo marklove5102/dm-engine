@@ -23,7 +23,6 @@ DWORD g_dwActionDelay[AT_MAX] =
 
 //线程安全的消息缓冲区65k大小
 static thread_local std::array<CHAR, 65536> s_threadMessageBuffer{};
-static thread_local std::array<CHAR, 65536> s_sendAroundBuffer{};
 
 BOOL CRefObject::IsValid()
 {
@@ -83,6 +82,8 @@ VOID CAliveObject::Clean()
 	SetNoDead(FALSE);
 	SetNoDamage(FALSE);
 	SetSuperHit(FALSE);
+	SetHpRecoverTick(800);
+	SetMpRecoverTick(800);
 	m_AddHpTimer.Savetime();
 	m_AddMpTimer.Savetime();
 	SetAddHp(0, 0);
@@ -93,6 +94,9 @@ VOID CAliveObject::Clean()
 	SetTarget(nullptr);
 	m_AttackObject.Clear();
 	m_szLongName.fill(0);
+	m_dwSkill6 = 0;
+	m_dwSkill45 = 0;
+	m_dwStatus26 = 0;
 }
 
 VOID CAliveObject::DropGold(DWORD dwCount, int x, int y, DWORD dwOwner)
@@ -185,7 +189,8 @@ VOID CAliveObject::Stop()
 	if (m_ActionType != AT_STAND)
 	{
 		SendAroundMsg(GetId(), SM_STOP, 0, 0, 0);
-		SendMsg(GetId(), SM_STOP, 0, 0, 0);
+		if (CanRecvMsg())
+			SendMsg(GetId(), SM_STOP, 0, 0, 0);
 	}
 }
 
@@ -340,9 +345,10 @@ BOOL CAliveObject::BeAttack(CAliveObject* pAttacker, int nDamage, damage_type da
 		if (IsSystemFlagSeted(SF_STRONGSHIELD))
 		{
 			int nodamage = GetNoDamage();
-			int64_t temp = (int64_t)nDamage * nodamage * INV_100;
-			temp >>= 32;
-			nDamage -= (int)temp;
+			double nodamagePercentage = nodamage / 100.0; // 将无伤害值除以 100, 得到百分比值
+			// 将整数类型的 nDamage 转换为浮点数类型, 执行乘法运算, 然后再转换回整数类型
+			int temp = static_cast<int>(static_cast<double>(nDamage) * nodamagePercentage);
+			nDamage -= temp;
 		}
 	}
 	if (nDamage < 0) nDamage = 0;
@@ -431,9 +437,10 @@ VOID CAliveObject::Say(const char* pszMsg, ...)
 	va_end(vl);
 	szBuff[120] = '\0';
 	CHAR* pBuffer = s_threadMessageBuffer.data();
-	int size = EncodeMsg(pBuffer, GetId(), SM_CHAT, 0xff00, 0, 0, (LPVOID)szBuff.data());
+	int size = 0;
+	size = EncodeMsg(pBuffer, GetId(), SM_CHAT, 0xff00, 0, 0, (LPVOID)szBuff.data());
 	if (CanRecvMsg()) OnAroundMsg(this, pBuffer, size);
-	SendAroundMsg(GetId(), SM_CHAT, 0xff00, 0, 0, (LPVOID)szBuff.data());
+	SendAroundMsg(pBuffer, size);
 }
 
 VOID CAliveObject::SaySystem(const char* pszMsg, ...)//系统消息
@@ -502,8 +509,8 @@ BOOL CAliveObject::SetAction(actiontype action, e_direction dir, WORD x, WORD y,
 	if (this->m_pMap == nullptr) return FALSE;
 	// 防止在相同帧内对同一位置发起重复的移动动作
 	// 如果当前已在执行相同的动作且目标坐标相同，跳过重复设置
-	if (m_ActionType == action && m_wActionX == x && m_wActionY == y)
-		return !CheckTimer(TimerType::TMR_ACTION, m_dwActionCompleteTime);
+	if (m_ActionType == action && m_wActionX == x && m_wActionY == y && !m_ActionTimer.IsTimeOut(m_dwActionCompleteTime))
+		return TRUE;
 	WORD wOldX = getX();
 	WORD wOldY = getY();
 	if (wOldX != x || wOldY != y)
@@ -516,7 +523,7 @@ BOOL CAliveObject::SetAction(actiontype action, e_direction dir, WORD x, WORD y,
 	m_wActionX = x;
 	m_wActionY = y;
 	m_dwActionCompleteTime = dwActionTime;
-	ResetTimer(TimerType::TMR_ACTION);
+	m_ActionTimer.Savetime();
 	OnDoAction(action);
 	return TRUE;
 }
@@ -539,8 +546,8 @@ BOOL CAliveObject::CompleteAction()
 	SetDirection(m_ActionDirection);
 	if (GetType() == OBJ_PLAYER)
 	{
-		ResetTimer(TimerType::TMR_HP_RECOVER);
-		ResetTimer(TimerType::TMR_MP_RECOVER);
+		m_HpRecoverTimer.Savetime();
+		m_MpRecoverTimer.Savetime();
 	}
 	return TRUE;
 }
@@ -588,7 +595,8 @@ BOOL CAliveObject::GetViewmsg(char* pszMsg, int& length, CMapObject* pViewer)
 //42名字改变
 VOID CAliveObject::SendChangeName()
 {
-	SendMsg(GetId(), SM_SETPLAYERNAME, GetNameColor(this), 0, GetFenghaoType23(), (LPVOID)GetViewName());
+	if (CanRecvMsg())
+		SendMsg(GetId(), SM_SETPLAYERNAME, GetNameColor(this), 0, GetFenghaoType23(), (LPVOID)GetViewName());
 	if (CSandCity::GetInstance()->IsWarStarted())
 	{
 		if (m_pMap == nullptr)return;
@@ -627,7 +635,8 @@ BOOL CAliveObject::CanDoAction(actiontype action)
 			// 但至少需要经过动作延迟的80%时间,防止恶意客户端高频刷移动包
 			DWORD dwMinInterval = m_dwActionCompleteTime * 8 / 10;
 			if (dwMinInterval < 100) dwMinInterval = 100;
-			return CheckTimer(TimerType::TMR_ACTION, dwMinInterval);
+			if (!m_ActionTimer.IsTimeOut(dwMinInterval))
+				return FALSE;
 		}
 	}
 	if (GetType() == OBJ_PLAYER && action == AT_ATTACK) // 玩家的判断
@@ -691,9 +700,7 @@ VOID CAliveObject::Update()
 				nHp = GetAutoRecoverHp();
 				if (GetPropValue(PI_CURHP) < GetPropValue(PI_MAXHP) || nHp < 0)
 				{
-					const DWORD dwHpInterval = GetAutoRecoverHptime();
-					const BOOL bExpired = CheckTimer(TimerType::TMR_HP_RECOVER, dwHpInterval);
-					if (bExpired)
+					if (m_HpRecoverTimer.IsTimeOut(GetAutoRecoverHptime()))
 					{
 						if (nHp != 0)
 						{
@@ -702,7 +709,7 @@ VOID CAliveObject::Update()
 							else
 								DecPropValue(PI_CURHP, -nHp);
 							bSendHpChanged = TRUE;
-							ResetTimer(TimerType::TMR_HP_RECOVER);
+							m_HpRecoverTimer.Savetime();
 						}
 					}
 				}
@@ -712,9 +719,7 @@ VOID CAliveObject::Update()
 				int nMp = GetAutoRecoverMp();
 				if (GetPropValue(PI_CURMP) < GetPropValue(PI_MAXMP) || nMp < 0)
 				{
-					const DWORD dwMpInterval = GetAutoRecoverMptime();
-					const BOOL bExpired = CheckTimer(TimerType::TMR_MP_RECOVER, dwMpInterval);
-					if (bExpired)
+					if (m_MpRecoverTimer.IsTimeOut(GetAutoRecoverMptime()))
 					{
 						if (nMp != 0)
 						{
@@ -723,7 +728,7 @@ VOID CAliveObject::Update()
 							else
 								DecPropValue(PI_CURMP, -nMp);
 							bSendMpChanged = TRUE;
-							ResetTimer(TimerType::TMR_MP_RECOVER);
+							m_MpRecoverTimer.Savetime();
 						}
 					}
 				}
@@ -769,18 +774,18 @@ VOID CAliveObject::Update()
 
 	if (m_ActionType != AT_STAND && m_dwActionCompleteTime != 0xffffffff)
 	{
-		const BOOL bActionComplete = CheckTimer(TimerType::TMR_ACTION, m_dwActionCompleteTime);
-		if (bActionComplete) CompleteAction();
+		if (m_ActionTimer.IsTimeOut(m_dwActionCompleteTime))
+			CompleteAction();
 	}
 	// 队列对象线程处理
 	OBJECTPROCESS* p = nullptr;
 	DWORD dwCurTime = CFrameTime::GetFrameTime();
 	int count = m_xQProcess.getcount();
 	// 使用thread_local复用，避免每帧堆分配
-	thread_local std::vector<OBJECTPROCESS*> s_tempVec;
-	s_tempVec.clear();
-	if ((int)s_tempVec.capacity() < count)
-		s_tempVec.reserve(count);
+	thread_local std::vector<OBJECTPROCESS*> tempVec;
+	tempVec.clear();
+	if ((int)tempVec.capacity() < count)
+		tempVec.reserve(count);
 	auto* pGameWorld = CGameWorld::GetInstance();
 	for (int i = 0; i < count; i++)
 	{
@@ -804,9 +809,9 @@ VOID CAliveObject::Update()
 			}
 			p->dwDeliverTime = dwCurTime;
 		}
-		s_tempVec.push_back(p);
+		tempVec.push_back(p);
 	}
-	for (auto item : s_tempVec)
+	for (auto item : tempVec)
 	{
 		m_xQProcess.push(item);
 	}
@@ -863,7 +868,7 @@ VOID CAliveObject::CleanVisibleList()
 	int mw = m_pMap->GetWidth();
 	int mh = m_pMap->GetHeight();
 	int dx = getX(), dy = getY();
-	int nRange = VIEW_RANGE + 2;
+	int nRange = VIEW_SEARCH_RANGE;
 	int startx = MAX(0, dx - nRange);
 	int endx = MIN(mw - 1, dx + nRange);
 	int starty = MAX(0, dy - nRange);
@@ -1019,7 +1024,7 @@ VOID CAliveObject::SearchViewRange()
 	int mw = pMap->GetWidth();
 	int mh = pMap->GetHeight();
 	int dx = getX(), dy = getY();
-	int nRange = VIEW_RANGE + 2;
+	int nRange = VIEW_SEARCH_RANGE;
 	int startx = MAX(0, dx - nRange);
 	int endx = MIN(mw - 1, dx + nRange);
 	int starty = MAX(0, dy - nRange);
@@ -1103,7 +1108,7 @@ VOID CAliveObject::RefreshViewList()
 	int mw = pMap->GetWidth();
 	int mh = pMap->GetHeight();
 	int dx = getX(), dy = getY();
-	int nRange = VIEW_RANGE;
+	int nRange = VIEW_SEARCH_RANGE;
 	int startx = MAX(0, dx - nRange);
 	int endx = MIN(mw - 1, dx + nRange);
 	int starty = MAX(0, dy - nRange);
@@ -1203,7 +1208,7 @@ VOID CAliveObject::UpdateViewRange(UINT ox, UINT oy)
 	int nx = getX(), ny = getY();
 	if (nx == ox && ny == oy) return;
 	int mw = static_cast<int>(m_pMap->GetWidth()) - 1, mh = static_cast<int>(m_pMap->GetHeight()) - 1;
-	int nRange = VIEW_RANGE + 2;
+	int nRange = VIEW_SEARCH_RANGE;
 	RECT rc1 = { static_cast<LONG>(ox - nRange), static_cast<LONG>(oy - nRange), static_cast<LONG>(ox + nRange), static_cast<LONG>(oy + nRange) };
 	RECT rc2 = { static_cast<LONG>(nx - nRange), static_cast<LONG>(ny - nRange), static_cast<LONG>(nx + nRange), static_cast<LONG>(ny + nRange) };
 	RECT rcs[4];
@@ -1299,7 +1304,7 @@ VOID CAliveObject::SendAroundMsg(DWORD dwFlag, WORD wCmd, WORD w1, WORD w2, WORD
 	if (IsSystemFlagSeted(SF_HIDED)) return;
 	if (m_xVisibleObjectList.getCount() == 0) return;
 
-	CHAR* pBuffer = s_sendAroundBuffer.data();
+	CHAR* pBuffer = s_threadMessageBuffer.data();
 	int size = EncodeMsg(pBuffer, dwFlag, wCmd, w1, w2, w3, lpdata, datasize);
 	auto* pNode = m_xVisibleObjectList.getHead();
 	while (pNode) {
@@ -1343,7 +1348,8 @@ VOID CAliveObject::ToDeath(DWORD dwKiller)
 		m_bDead = TRUE;
 		DWORD dwArray[2] = { GetFeather(), GetStatus() };
 		SendAroundMsg(GetId(), SM_NOWDEATH, getX(), getY(), GetDirection(), (LPVOID)dwArray, sizeof(dwArray));
-		SendMsg(GetId(), SM_NOWDEATH, getX(), getY(), GetDirection(), (LPVOID)dwArray, sizeof(dwArray));
+		if (CanRecvMsg())
+			SendMsg(GetId(), SM_NOWDEATH, getX(), getY(), GetDirection(), (LPVOID)dwArray, sizeof(dwArray));
 		OnDeath(dwKiller);
 	}
 }
@@ -1707,13 +1713,16 @@ BOOL CAliveObject::FlyTo(CLogicMap* pMap, int x, int y, BOOL bShowEffect)
 		if (pMap->GetValidPoint(x, y, &pt, 1))
 			x = pt.x, y = pt.y;
 	}
-	
+
 	CLogicMap* pOldMap = m_pMap;
 	if (!pOldMap->RemoveObject(this))//如果删除对象失败
 		return FALSE;
-
-	SendMsg(0, SM_CLEAROBJECTS, 0, 0, 0);
-	SendMsg(GetId(), SM_CHANGEMAP, x, y, 0, (LPVOID)pMap->GetName());
+	BOOL bSendMsg = CanRecvMsg();//能否接收信息
+	if (bSendMsg)
+	{
+		SendMsg(0, SM_CLEAROBJECTS, 0, 0, 0);
+		SendMsg(GetId(), SM_CHANGEMAP, x, y, 0, (LPVOID)pMap->GetName());
+	}
 
 	int ox = getX();
 	int oy = getY();
@@ -1725,8 +1734,10 @@ BOOL CAliveObject::FlyTo(CLogicMap* pMap, int x, int y, BOOL bShowEffect)
 		pOldMap->AddObject(this);
 		return FALSE;
 	}
+
 	SetAction(AT_FLY, GetDirection(), x, y, 200);
-	if (CanRecvMsg())
+
+	if (bSendMsg)
 	{
 		if (bShowEffect)
 		{
@@ -1753,7 +1764,8 @@ VOID CAliveObject::SendStatusChanged() //改变状态
 	WORD w1 = dwFlag & 0xffff;
 	WORD w2 = (dwFlag & 0xffff0000) >> 16;
 	SendAroundMsg(GetId(), 0x291, w1, w2, wSpeed);
-	SendMsg(GetId(), 0x291, w1, w2, wSpeed);
+	if (CanRecvMsg())
+		SendMsg(GetId(), 0x291, w1, w2, wSpeed);
 }
 
 BOOL CAliveObject::Damage(DWORD dwHitter, int value)
@@ -1904,6 +1916,8 @@ BOOL CAliveObject::DoPushed(int nDirection)
 	int	nBackDir = GETBACKDIR(nDirection);
 	if (m_pMap->MoveObject(this, x, y))
 	{
+		m_wActionX = static_cast<WORD>(x);
+		m_wActionY = static_cast<WORD>(y);
 		DWORD dwView[] = { GetFeather(), GetStatus() };
 		SendAroundMsg(GetId(), SM_BACK, x, y, nBackDir, dwView, sizeof(dwView));
 		SendMsg(GetId(), SM_BACK, x, y, nBackDir, dwView, sizeof(dwView));
@@ -1921,6 +1935,8 @@ BOOL CAliveObject::DoLionPush(int nDirection)
 	int	nBackDir = GETBACKDIR(nDirection);
 	if (m_pMap->MoveObject(this, x, y))
 	{
+		m_wActionX = static_cast<WORD>(x);
+		m_wActionY = static_cast<WORD>(y);
 		stLionBack lionback = { 0 };
 		lionback.dwFeature = GetFeather();
 		lionback.dwStatus = GetStatus();
@@ -1943,6 +1959,8 @@ BOOL CAliveObject::DoRush(int nDirection, DWORD dwFlag)
 	dwFlag = MAKEWORD(nDirection, dwFlag);
 	if (m_pMap->MoveObject(this, x, y))
 	{
+		m_wActionX = static_cast<WORD>(x);
+		m_wActionY = static_cast<WORD>(y);
 		SendAroundMsg(GetId(), SM_RUSH, x, y, (WORD)dwFlag, dwView, sizeof(dwView));
 		SendMsg(GetId(), SM_RUSH, x, y, (WORD)dwFlag, dwView, sizeof(dwView));
 		return TRUE;
@@ -1973,6 +1991,11 @@ int CAliveObject::CharPushed(int nDirection, int nCount)
 			SendMsg(GetId(), SM_BACK, x, y, nBackDir, dwView, sizeof(dwView));
 			iCount++;
 		}
+	}
+	if (iCount > 0)
+	{
+		m_wActionX = getX();
+		m_wActionY = getY();
 	}
 	return iCount;
 }
@@ -2084,6 +2107,8 @@ VOID CAliveObject::ForceMove(int x, int y)
 	if (m_pMap->IsBlocked(x, y))return;
 	if (m_pMap->MoveObject(this, x, y))
 	{
+		m_wActionX = static_cast<WORD>(x);
+		m_wActionY = static_cast<WORD>(y);
 		DWORD dwFeature = GetFeather();
 		SendAroundMsg(GetId(), 0x0c, x, y, (WORD)GetDirection(), &dwFeature, 4);
 		SendMsg(GetId(), 0x0c, x, y, (WORD)GetDirection(), &dwFeature, 4);

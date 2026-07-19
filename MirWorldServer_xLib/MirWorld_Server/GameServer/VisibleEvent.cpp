@@ -24,6 +24,7 @@ VOID CVisibleEvent::Clean()
 
 BOOL CVisibleEvent::GetViewmsg(char* pszMsg, int& length, CMapObject* pViewer)
 {
+	if (m_bClosed) return FALSE;
 	std::array<DWORD, 2> dwArray = { m_dwParam1, m_dwParam2 };
 	length = EncodeMsg(pszMsg, (DWORD)this->GetId(), 804, m_dwView & 0xffff, m_wX, m_wY, (LPVOID)dwArray.data(), sizeof(dwArray));
 	return TRUE;
@@ -65,7 +66,14 @@ VOID CVisibleEvent::Close()
 BOOL CVisibleEvent::UpdateValid()
 {
 	if (m_pEventProcessor == nullptr)
+	{
+		if (this->m_CloseTimer.IsTimeOut())
+		{
+			Close();
+			return FALSE;
+		}
 		return TRUE;
+	}
 	if (!m_RunTimer.IsTimeOut())return TRUE;
 	if (this->m_CloseTimer.IsTimeOut())
 	{
@@ -97,22 +105,21 @@ VOID CVisibleEvent::OnEnterMap(CLogicMap* pMap)
 	char szBuffer[1024];
 	int length = 1024;
 	if (!GetViewmsg(szBuffer, length))return;
-	for (int x = -12; x <= 12; x++)
+	for (int x = -VIEW_SEARCH_RANGE; x <= VIEW_SEARCH_RANGE; x++)
 	{
-		for (int y = -12; y <= 12; y++)
+		for (int y = -VIEW_SEARCH_RANGE; y <= VIEW_SEARCH_RANGE; y++)
 		{
 			CMapCellInfo* pInfo = pMap->GetMapCellInfoShared(mx + x, my + y);
 			if (pInfo && pInfo->m_xObjectList.getCount() > 0)
 			{
-				xListHost<CMapObject>::xListNode* pNode = pInfo->m_xObjectList.getHead();
-				while (pNode)
+				xListHelper<CMapObject> helper(&pInfo->m_xObjectList);
+				for (CMapObject* pObj = helper.first(); pObj != nullptr; pObj = helper.next())
 				{
-					if (pNode->getObject()->GetClassType() == CLS_ALIVEOBJECT)
+					if (pObj->GetClassType() == CLS_ALIVEOBJECT)
 					{
-						if (((CAliveObject*)pNode->getObject())->GetVisibleObjectFlag() & (1 << GetType()))
-							((CAliveObject*)pNode->getObject())->UpdateVisibleObject(this);
+						if (((CAliveObject*)pObj)->GetVisibleObjectFlag() & (1 << GetType()))
+							((CAliveObject*)pObj)->UpdateVisibleObject(this);
 					}
-					pNode = pNode->getNext();
 				}
 			}
 		}
@@ -123,22 +130,21 @@ VOID CVisibleEvent::OnLeaveMap(CLogicMap* pMap)
 {
 	CMapObject::OnLeaveMap(pMap);
 	int mx = getX(), my = getY();
-	for (int x = -12; x <= 12; x++)
+	for (int x = -VIEW_SEARCH_RANGE; x <= VIEW_SEARCH_RANGE; x++)
 	{
-		for (int y = -12; y <= 12; y++)
+		for (int y = -VIEW_SEARCH_RANGE; y <= VIEW_SEARCH_RANGE; y++)
 		{
 			CMapCellInfo* pInfo = pMap->GetMapCellInfoShared(mx + x, my + y);
 			if (pInfo && pInfo->m_xObjectList.getCount() > 0)
 			{
-				xListHost<CMapObject>::xListNode* pNode = pInfo->m_xObjectList.getHead();
-				while (pNode)
+				xListHelper<CMapObject> helper(&pInfo->m_xObjectList);
+				for (CMapObject* pObj = helper.first(); pObj != nullptr; pObj = helper.next())
 				{
-					if (pNode->getObject()->GetClassType() == CLS_ALIVEOBJECT)
+					if (pObj->GetClassType() == CLS_ALIVEOBJECT)
 					{
-						if (((CAliveObject*)pNode->getObject())->GetVisibleObjectFlag() & (1 << GetType()))
-							((CAliveObject*)pNode->getObject())->RemoveVisibleObject(this);
+						if (((CAliveObject*)pObj)->GetVisibleObjectFlag() & (1 << GetType()))
+							((CAliveObject*)pObj)->RemoveVisibleObject(this);
 					}
-					pNode = pNode->getNext();
 				}
 			}
 		}

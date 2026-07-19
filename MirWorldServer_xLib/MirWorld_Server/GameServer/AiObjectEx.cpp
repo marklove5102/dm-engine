@@ -14,6 +14,8 @@ CAiObjectEx::CAiObjectEx(VOID)
 	m_wHomeY = 0; // 出生Y坐标
 	m_boBackHome = FALSE;
 	m_wGoGomeTime = 0;
+	m_dwLastAttackTick = 0;
+	m_dwNextVolleyTick = 0;
 }
 
 CAiObjectEx::~CAiObjectEx(VOID)
@@ -185,6 +187,14 @@ VOID CAiObjectEx::Ai_BianZouBianDa(BYTE nAttackDistance)
 VOID CAiObjectEx::Ai_BackHome(BYTE nAttackDistance, BYTE btViewDistance, MONSTERGEN* pGen)
 {
 	if (pGen == nullptr) return;
+	// 橡皮筋检测: 在回防/巡逻/追击前先判断是否越界
+	// 若距离出生点超过视野范围, 立即进入回防状态(FlyTo下一帧触发)
+	if (DISTANCE(getX(), getY(), m_wHomeX, m_wHomeY) > btViewDistance)
+	{
+		m_boBackHome = TRUE;
+		m_wGoGomeTime = btViewDistance + 1; // 确保下帧走FlyTo而非GotoPosition
+	}
+
 	CAliveObject* pTarget = GetTarget();
 	xIndexPtrListHelper<CMonsterEx> helper(pGen->xMonsterList);
 	thread_local std::vector<CMonsterEx*> monsterList; // 使用thread_local复用，避免高频AI路径堆分配
@@ -222,68 +232,76 @@ VOID CAiObjectEx::Ai_BackHome(BYTE nAttackDistance, BYTE btViewDistance, MONSTER
 				}
 			}
 			if (!shouldReturn) return; // 如果不是所有都回到家, 直接返回, 继续等待
-			for (CMonsterEx* pMonster : monsterList) // 让还没有回家的飞回家, 并取消回防状态
+			for (CMonsterEx* pMonster : monsterList) // 所有怪物已归位, 统一解除回防状态
 			{
 				pMonster->SetTarget(nullptr);
 				pMonster->m_boBackHome = FALSE;
 			}
+			pTarget = GetTarget(); // 回防重置后刷新目标指针, 防止使用过期指针导致怪物立即重新追击
 		}
 	}
-	if (pTarget == nullptr) // 没有目标, 在出生点附近巡逻
+	if (pTarget == nullptr) // 没有目标, 在自身出生点附近巡逻
 	{
-		BYTE nCenterDist = DISTANCE(getX(), getY(), pGen->x, pGen->y);
-		if (nCenterDist <= nAttackDistance)
+		BYTE nHomeDist = DISTANCE(getX(), getY(), m_wHomeX, m_wHomeY);
+		if (nHomeDist <= btViewDistance) // 在巡逻半径内随机游荡
 			Ai_StupidMove();
 		else
-			GotoPosition(m_wHomeX, m_wHomeY);
+			GotoPosition(m_wHomeX, m_wHomeY); // 走回出生点(橡皮筋已在函数开头处理, 此处为保险)
+		return;
 	}
-	else // 有目标, 进行警戒逻辑
+	// 有目标时各自独立判断
 	{
-		thread_local std::vector<std::pair<CMonsterEx*, BYTE>> monsterDistances; // 使用thread_local复用，避免高频AI路径堆分配
-		monsterDistances.clear();
-		monsterDistances.reserve(monsterList.size());
-		for (CMonsterEx* pMonster : monsterList) // 计算所有怪物到目标的距离
+		BYTE nMyDist = DISTANCE(getX(), getY(), pTarget->getX(), pTarget->getY());
+		// 齐射模式: 分布式无协调者, 任一CD到期的怪遍历同组触发集体攻击
+		if (GetType() == OBJ_MONSTER)
 		{
-			BYTE dist = DISTANCE(pMonster->getX(), pMonster->getY(), pTarget->getX(), pTarget->getY());
-			monsterDistances.push_back({ pMonster, dist });
-		}
-		// 按距离部分排序（只需前12个最小的，避免全排序的O(n log n)开销）
-		const size_t kMaxAttackCount = 12;
-		size_t sortCount = MIN(monsterDistances.size(), kMaxAttackCount); // 已通过partial_sort保证前sortCount个是最近的
-		std::partial_sort(monsterDistances.begin(), monsterDistances.begin() + sortCount, monsterDistances.end(),
-			[](const auto& a, const auto& b) {
-				return a.second < b.second;
-			});
-		// 最近怪物的距离
-		BYTE nDist = monsterDistances[0].second;
-		if (nDist <= nAttackDistance) // 在攻击范围内
-		{
-			if (monsterDistances[0].first == this) // 协同攻击：让最近的怪物发起攻击
+			CMonsterEx* pMe = static_cast<CMonsterEx*>(this);
+			MonsterClass* pDesc = pMe->GetDesc();
+			if (pDesc) // 齐射逻辑
 			{
-				for (size_t i = 0; i < sortCount; i++)
-				{
-					monsterDistances[i].first->AttackTarget();
-				}
-			}
-		}
-		else // 在视野内但攻击范围外, 向目标移动
-		{
-			BYTE nDistFirst = DISTANCE(monsterDistances[0].first->getX(), monsterDistances[0].first->getY(), pGen->x, pGen->y);
-			if (nDistFirst > btViewDistance) // 如果已经跟随到距离中心点远大于视觉距离了, 立即回防
-			{
-				if (monsterDistances[0].first == this)
+				DWORD dwNow = CFrameTime::GetFrameTime();
+				// 自身CD时间到 且 在攻击范围内 → 触发本轮齐射
+				if (nMyDist <= nAttackDistance && pMe->m_dwNextVolleyTick <= dwNow)
 				{
 					for (CMonsterEx* pMonster : monsterList)
 					{
-						pMonster->SetTarget(nullptr);
-						pMonster->m_wGoGomeTime = 0;
-						pMonster->m_boBackHome = TRUE;
+						BYTE dist = DISTANCE(pMonster->getX(), pMonster->getY(), pTarget->getX(), pTarget->getY());
+						if (dist <= nAttackDistance)
+							pMonster->AttackTarget(ED_MAX, TRUE);
+						pMonster->m_dwNextVolleyTick = dwNow + pDesc->attackdesc.Delay; // 全体CD时间, 防止重复触发
 					}
+					return;
 				}
+				// CD时间未到: 不攻击, 只追击
+				if (nMyDist > nAttackDistance)
+				{
+					int nChaseX = pTarget->getX();
+					int nChaseY = pTarget->getY();
+					if (nMyDist <= 2)
+					{
+						nChaseX += (int)(Getrand(3)) - 1;
+						nChaseY += (int)(Getrand(3)) - 1;
+					}
+					GotoPosition(nChaseX, nChaseY);
+				}
+				return;
 			}
-			else
-				GotoPosition(pTarget->getX(), pTarget->getY());
 		}
+		// 普通模式(非齐射): 个体独立攻击
+		if (nMyDist <= nAttackDistance)
+		{
+			AttackTarget(); // 独立攻击
+			return;
+		}
+		// 近距离时目标加随机偏移, 防止方阵中25只怪全部挤向玩家同一格导致阻塞
+		int nChaseX = pTarget->getX();
+		int nChaseY = pTarget->getY();
+		if (nMyDist <= 2)
+		{
+			nChaseX += (int)(Getrand(3)) - 1;
+			nChaseY += (int)(Getrand(3)) - 1;
+		}
+		GotoPosition(nChaseX, nChaseY); // 追击
 	}
 }
 
@@ -320,7 +338,7 @@ VOID CAiObjectEx::Ai_StupidMove()
 	}
 }
 
-BOOL CAiObjectEx::AttackTarget(e_direction dir)
+BOOL CAiObjectEx::AttackTarget(e_direction dir, BOOL bFromVolley)
 {
 	return TRUE;
 }

@@ -47,7 +47,7 @@ DEFINE_SCRIPT_VAR(SERVERDATETIME) {
 	SYSTEMTIME	st;
 	GetLocalTime(&st);
 	char* p = CScriptVariableManager::GetInstance()->GetStringCache();
-	sprintf(p, "%04u-%02u-%02u %02u:%02u:%02u",
+	snprintf(p, 256, "%04u-%02u-%02u %02u:%02u:%02u",
 		st.wYear, st.wMonth, st.wDay,
 		st.wHour, st.wMinute, st.wSecond);
 	result.SetValue(p);
@@ -57,7 +57,7 @@ DEFINE_SCRIPT_VAR(SERVERDATE) {
 	SYSTEMTIME	st;
 	GetLocalTime(&st);
 	char* p = CScriptVariableManager::GetInstance()->GetStringCache();
-	sprintf(p, "%04u-%02u-%02u",
+	snprintf(p, 256, "%04u-%02u-%02u",
 		st.wYear, st.wMonth, st.wDay);
 	result.SetValue(p);
 }END_SCRIPT_VAR
@@ -66,7 +66,7 @@ DEFINE_SCRIPT_VAR(SERVERTIME) {
 	SYSTEMTIME	st;
 	GetLocalTime(&st);
 	char* p = CScriptVariableManager::GetInstance()->GetStringCache();
-	sprintf(p, "%02u:%02u:%02u",
+	snprintf(p, 256, "%02u:%02u:%02u",
 		st.wHour, st.wMinute, st.wSecond);
 	result.SetValue(p);
 }END_SCRIPT_VAR

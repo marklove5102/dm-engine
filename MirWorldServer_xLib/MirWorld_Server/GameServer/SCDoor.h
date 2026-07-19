@@ -9,8 +9,8 @@ public:
 	CSCDoor(VOID);
 	virtual ~CSCDoor(VOID);
 	BOOL Init(const char* pszName, int mapid, int x, int y, WORD wHp, BOOL bOpened = FALSE);
-	VOID OnDeath(DWORD dwKiller);
-	VOID OnDamage(CAliveObject* pAttacker, int nDamage, damage_type type);
+	VOID OnDeath(DWORD dwKiller) override;
+	VOID OnDamage(CAliveObject* pAttacker, int nDamage, damage_type type) override;
 
 	BOOL IsOpened()const { return m_bOpened; }
 	VOID ChangeOpenState()

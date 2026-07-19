@@ -1,5 +1,6 @@
 #pragma once
 #include <array>
+#include <memory>
 class CSubMarket;
 class CHumanPlayer;
 
@@ -14,7 +15,7 @@ public:
 
 	VOID SendSubMarket(CHumanPlayer* pPlayer);
 protected:
-	std::array<CSubMarket*, 32> m_pSubMarketArray{};
+	std::array<std::unique_ptr<CSubMarket>, 32> m_pSubMarketArray{};
 	UINT m_nSubMarketCount;
 	UINT m_Id;
 };

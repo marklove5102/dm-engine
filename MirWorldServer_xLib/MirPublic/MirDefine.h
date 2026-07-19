@@ -531,6 +531,10 @@
 #define	MAX_TASK 50 //最大任务数, 最大不能超过254
 #define	MAX_FENGHAO 58 //最大时长封号序号
 
+// 8方向判断斜率阈值: tan(22.5°) * 1000 和 tan(67.5°) * 1000
+constexpr int DIR8_SLOPE_LOW = 414;   // tan(22.5°) * 1000
+constexpr int DIR8_SLOPE_HIGH = 2414;  // tan(67.5°) * 1000
+
 #define GETOPPDIR(dir) (G_OPPDIR[(dir)%8]) //获取朝向
 #define GETBACKDIR(dir) ((dir + 4)%8) //获取反向朝向
 #define GETNEXTPOS( _x,_y ,dir) ((_x)+=G_DIROFS[(dir)%8].x,(_y)+=G_DIROFS[(dir)%8].y) //获取朝向的下一个坐标

@@ -364,7 +364,7 @@ VOID CClientObj::SendLoginSuccess(UINT nLoginId)
 {
 	char szBuffer[64];
 	sprintf_s(szBuffer, sizeof(szBuffer), "*%u", nLoginId);
-	SendMsg(0, SM_LOGINOK, 0, 0, 0, szBuffer, static_cast<int>(strlen(szBuffer)));
+	SendMsg(static_cast<int>(strlen(szBuffer)), SM_LOGINOK, 0, 0, 0, szBuffer, static_cast<int>(strlen(szBuffer)));
 }
 
 VOID CClientObj::OnMASMsg(WORD wCmd, WORD wType, WORD wIndex, const char* pszData, int datasize)
@@ -374,8 +374,8 @@ VOID CClientObj::OnMASMsg(WORD wCmd, WORD wType, WORD wIndex, const char* pszDat
 	case MAS_ENTERSELCHARSERVER:
 	{
 		//	data = "lid/sid/account"
-		char* Params[5];
-		int nParam = SearchParam((char*)pszData, Params, 5, "/");
+		char* Params[3];
+		int nParam = SearchParam((char*)pszData, Params, 3, "/");
 		if (nParam == 3)
 		{
 			if (m_nLid == static_cast<UINT>(strtoul(Params[0], nullptr, 10)) && strcmp(m_szAccount.data(), Params[2]) == 0)
@@ -397,6 +397,6 @@ VOID CClientObj::SendSelectServerOk()
 {
 	CHAR szData[200];
 	sprintf_s(szData, sizeof(szData), "%s/%u/%u", m_SelectCharServer.addr.addr.data(), m_SelectCharServer.addr.nPort, m_nSid);
-	SendMsg(getId(), 0xaff, 1, 0, 0); // 1是1.9人物选择界面、3是时长专用
-	SendMsg(0, SM_SELECTSERVEROK, 0, 0, 0, (LPVOID)szData, static_cast<int>(strlen(szData)));
+	//SendMsg(getId(), 0xaff, 1, 0, 0); // 1是1.9人物选择界面、3是时长专用
+	SendMsg(static_cast<DWORD>(strlen(szData)), SM_SELECTSERVEROK, 0, 0, 0, (LPVOID)szData, static_cast<int>(strlen(szData)));
 }

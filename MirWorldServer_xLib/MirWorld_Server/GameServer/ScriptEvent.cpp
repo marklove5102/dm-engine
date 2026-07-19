@@ -41,14 +41,11 @@ CScriptEvent* CScriptEvent::Create(UINT nMapId, UINT x, UINT y, DWORD dwFlag, co
 
 VOID CScriptEvent::Release()
 {
-	if (m_pMap)
-	{
-		m_pMap->RemoveObject(this);
-	}
+	if (m_pMap) m_pMap->RemoveObject(this);
 	m_dwFlag = 0;
 	m_szScriptPage[0] = 0;
-	m_xScriptEventPool.deleteObject(this);
 	m_xList.removeNode(&m_xNode);
+	m_xScriptEventPool.deleteObject(this);
 }
 
 VOID CScriptEvent::OnEnter(CMapObject* pObject)

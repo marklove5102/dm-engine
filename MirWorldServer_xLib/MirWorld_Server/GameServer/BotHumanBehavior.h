@@ -198,14 +198,14 @@ public:
 		{
 			if (y1 > 0)
 			{
-				if (j < 414) return 2;
-				else if (j < 2414) return 1;
+				if (j < DIR8_SLOPE_LOW) return 2;
+				else if (j < DIR8_SLOPE_HIGH) return 1;
 				else return 0;
 			}
 			else
 			{
-				if (j < 414) return 2;
-				else if (j < 2414) return 3;
+				if (j < DIR8_SLOPE_LOW) return 2;
+				else if (j < DIR8_SLOPE_HIGH) return 3;
 				else return 4;
 			}
 		}
@@ -213,14 +213,14 @@ public:
 		{
 			if (y1 > 0)
 			{
-				if (j < 414) return 6;
-				else if (j < 2414) return 7;
+				if (j < DIR8_SLOPE_LOW) return 6;
+				else if (j < DIR8_SLOPE_HIGH) return 7;
 				else return 0;
 			}
 			else
 			{
-				if (j < 414) return 6;
-				else if (j < 2414) return 5;
+				if (j < DIR8_SLOPE_LOW) return 6;
+				else if (j < DIR8_SLOPE_HIGH) return 5;
 				else return 4;
 			}
 		}

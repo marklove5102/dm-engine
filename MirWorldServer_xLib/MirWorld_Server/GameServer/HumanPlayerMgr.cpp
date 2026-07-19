@@ -2,14 +2,10 @@
 #include ".\humanplayermgr.h"
 #include ".\gameworld.h"
 #include "BotManager.h"
-#include "PlayerComponentManager.h"
 
 CHumanPlayerMgr::CHumanPlayerMgr(VOID)
 {
 	m_HumanPlayers.Create(1024);
-	VMP_PROTECT_BEGIN("CHumanPlayerMgr-boTest");
-	m_boTest = FALSE;
-	VMP_PROTECT_END();
 }
 
 CHumanPlayerMgr::~CHumanPlayerMgr(VOID)
@@ -49,56 +45,41 @@ VOID CHumanPlayerMgr::RemovePlayerNameList(const char* pszName)
 	m_PlayerNameHash.HDel(pszName);
 }
 
-BOOL CHumanPlayerMgr::RegisterBotPlayer(CHumanPlayer* pPlayer)
+BOOL CHumanPlayerMgr::RegisterBotPlayer(CHumanPlayer* pPlayer, const char* pszName)
 {
-	const char* pszName = pPlayer->GetName();
 	if (pszName == nullptr || pszName[0] == '\0')
 		return FALSE;
 	// 检查是否已存在同名玩家
 	if (m_PlayerNameHash.HGet(pszName) != nullptr)
 	{
-		LG2("机器人注册: 名字 [%s] 已存在\n", pszName);
+		DPRINT(SUCCESS_GREEN, "机器人注册: 名字 [%s] 已存在\n", pszName);
 		return FALSE;
 	}
-	PlayerComponentManager::GetInstance()->CreatePlayerComponents(pPlayer);
 	return m_PlayerNameHash.HAdd(pszName, (LPVOID)pPlayer);
 }
 
-VOID CHumanPlayerMgr::UnregisterBotPlayer(CHumanPlayer* pPlayer)
+VOID CHumanPlayerMgr::UnregisterBotPlayer(const char* pszName)
 {
-	const char* pszName = pPlayer->GetName();
 	if (pszName == nullptr || pszName[0] == '\0')
 		return;
 	m_PlayerNameHash.HDel(pszName);
-	UINT rawId = pPlayer->GetId();
-	PlayerComponentManager::GetInstance()->DestroyPlayerComponents(rawId);
 }
 
 CHumanPlayer* CHumanPlayerMgr::NewPlayer()
 {
-	VMP_PROTECT_BEGIN("NewPlayer-boTest");
-	if (IsTestMode())
-	{
-		if (m_HumanPlayers.GetCount() >= 5)
-			return nullptr;
-	}
-	VMP_PROTECT_END();
 	CHumanPlayer* pPlayer = nullptr;
 	UINT id = 0;
 	id = m_HumanPlayers.New(&pPlayer);
 	if (id == 0 || pPlayer == nullptr) return nullptr;
 	id |= (OBJ_PLAYER << 24);
 	pPlayer->SetId(id);
-	PlayerComponentManager::GetInstance()->CreatePlayerComponents(pPlayer);
 	return pPlayer;
 }
 
 BOOL CHumanPlayerMgr::DeletePlayer(CHumanPlayer* pPlayer)
 {
-	UINT rawId = pPlayer->GetId();
-	UINT id = rawId & 0xffffff;
+	UINT id = (pPlayer->GetId() & 0xffffff);
 	m_PlayerNameHash.HDel(pPlayer->GetName());
 	pPlayer->Clean();
-	PlayerComponentManager::GetInstance()->DestroyPlayerComponents(rawId);
 	return m_HumanPlayers.Del(id);
 }

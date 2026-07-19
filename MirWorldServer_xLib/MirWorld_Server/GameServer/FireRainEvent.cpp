@@ -90,19 +90,18 @@ VOID FireRainEvent::OnUpdate(CVisibleEvent* pEvent)
 			pInfo = pMap->GetMapCellInfoShared(x, y);
 			if (pInfo && pInfo->m_xObjectList.getCount() > 0)
 			{
-				xListHost<CMapObject>::xListNode* pNode = pInfo->m_xObjectList.getHead();
-				while (pNode)
+				xListHelper<CMapObject> helper(&pInfo->m_xObjectList);
+				for (CMapObject* pObj = helper.first(); pObj != nullptr; pObj = helper.next())
 				{
-					if (pNode->getObject() && pNode->getObject()->GetClassType() == CLS_ALIVEOBJECT)
+					if (pObj && pObj->GetClassType() == CLS_ALIVEOBJECT)
 					{
-						CAliveObject* pAObj = (CAliveObject*)pNode->getObject();
+						CAliveObject* pAObj = (CAliveObject*)pObj;
 						if (pAObj != m_pOwner && !pAObj->IsDeath() && m_pOwner->IsProperTarget(pAObj))
 						{
 							UINT nDamage = Getrand(m_nDamage);
 							pAObj->AddProcess(EP_BEATTACKED, nDamage, m_pOwner == nullptr ? 0 : m_pOwner->GetId(), DT_DIRECT);
 						}
 					}
-					pNode = pNode->getNext();
 				}
 			}
 		}

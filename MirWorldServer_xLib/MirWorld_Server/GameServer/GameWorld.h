@@ -93,8 +93,8 @@ private:
 	VOID UpdateMonsterParallel(xListHost<CMonsterEx>& monsterList, MonsterUpdateType updateType, int nBatchSize);
 	VOID UpdatePlayers();
 public:
-	UINT GetUpdateMonsterListCount() 
-	{ 
+	UINT GetUpdateMonsterListCount()
+	{
 		SRLock lock(m_rwMonsterLock);
 		UINT count = m_xUpdateMonsterList.getCount() + m_xUpdateAutoMonsterList.getCount();
 		return count;
@@ -183,9 +183,6 @@ public:
 	VOID PostSystemMessage(DWORD dwColor, const char* pszWords, DWORD dwDelay = 0);
 	VOID PostSystem10Message(const char* pszWords, DWORD dwDelay = 0);
 
-	USERMAGIC* AllocUserMagic();
-	VOID FreeUserMagic(USERMAGIC* p);
-
 	BOOL GetBornPoint(int pro, int& mapid, int& x, int& y, char* pszName);
 	BOOL GetStartPoint(const char* pszName, int& mapid, int& x, int& y);
 
@@ -230,8 +227,7 @@ private:
 	xMpscQueue<tagOBJECTPROCESS, 64> m_xGlobeProcessQueue;
 	xObjectPool	<tagOBJECTPROCESS> m_ObjProcesses;
 	xObjectPool <STRING_BUFFER> m_StringBufferPool;
-	xObjectPool<USERMAGIC> m_UserMagicPool;
-	std::array<std::unique_ptr<START_POINT*[]>, 3> m_BornPoints;
+	std::array<std::unique_ptr<START_POINT* []>, 3> m_BornPoints;
 	std::array<int, 3> m_iBornPointCount;
 	CSettingFile m_sfServer;
 	std::array<std::array<HUMANDATADESC, MAX_LEVEL>, PRO_MAX> m_HumanData;

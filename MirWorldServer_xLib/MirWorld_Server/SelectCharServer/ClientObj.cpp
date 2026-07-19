@@ -95,7 +95,7 @@ VOID CClientObj::OnMASMsg(WORD wCmd, WORD wType, WORD wIndex, const char* pszDat
 				char szData[200];
 				sprintf_s(szData, sizeof(szData), "%s/%u", m_GameServerAddr.addr.addr.data(),
 					m_GameServerAddr.addr.nPort);
-				SendMsg(0, SM_SELECTCHAROK, 0, 0, 0, (LPVOID)szData);
+				SendMsg(static_cast<DWORD>(strlen(szData)), SM_SELECTCHAROK, 0, 0, 0, (LPVOID)szData);
 				PRINT(SUCCESS_GREEN, "%s\n", szData);
 			}
 			else if (pEnterInfo->result == SE_SERVERFULL)
@@ -271,8 +271,8 @@ VOID CClientObj::OnCodedMsg(xClientObject* pObject, PMIRMSG pMsg, int datasize)
 			CDBClientObj* pObj = pServer->GetDBConnection(0);
 			if (pObj != nullptr)
 			{
-				char* Params[5];
-				int nParam = SearchParam(pMsg->data, Params, 5, "/");
+				char* Params[2];
+				int nParam = SearchParam(pMsg->data, Params, 2, "/");
 				if (nParam == 2)
 				{
 					m_bSelected = TRUE;
@@ -336,8 +336,8 @@ VOID CClientObj::OnCodedMsg(xClientObject* pObject, PMIRMSG pMsg, int datasize)
 				SendMsg(0, 0xafa, 0, 0, 0, (LPVOID)"已经激活两个角色, 不能再创建角色!");
 				break;
 			}
-			char* Params[10];
-			int nParam = SearchParam(pMsg->data, Params, 10, "/");
+			char* Params[5];
+			int nParam = SearchParam(pMsg->data, Params, 5, "/");
 			//	比如验证之后,才能创建角色
 			if (nParam == 5)
 			{
@@ -374,8 +374,8 @@ VOID CClientObj::OnCodedMsg(xClientObject* pObject, PMIRMSG pMsg, int datasize)
 	{
 		if (pMsg->wCmd == CM_QUERYCHARLIST)
 		{
-			char* Params[5];
-			int nParam = SearchParam(pMsg->data, Params, 5, "/");
+			char* Params[2];
+			int nParam = SearchParam(pMsg->data, Params, 2, "/");
 			if (nParam == 2)
 			{
 				if (*Params[0] == '*')
@@ -417,17 +417,17 @@ VOID CClientObj::SendCharList(tQueryCharList_Result* pResult)
 {
 	CHAR szData[2048] = "";
 	char* p = szData;
-	//data = "*名字/职业/头发/级别/性别/"
+	//data = "*名字/职业/头发/级别/性别/删除时间/删除标记"
 	//两个人的情况 * 在上次登陆（或者新创建的）的角色名字前面
-	//data = "名字/职业/头发/级别/性别/名字/职业/头发/级别/性别/"
 	int nCount = pResult->count;
 	for (int i = 0; i < nCount; i++)
 	{
 		if (i >= MAX_CHARLISTCOUNT)break;
-		if (pResult->charlist[i].date.bflag)
-			*p++ = '*';
-		sprintf_s(p, sizeof(szData) - (p - szData), "%s/%u/%u/%u/%u/", pResult->charlist[i].szName, pResult->charlist[i].btClass,
-			pResult->charlist[i].btHair, pResult->charlist[i].wLevel, pResult->charlist[i].btSex);
+		sprintf_s(p, sizeof(szData) - (p - szData), "%s/%u/%u/%u/%u/%04u-%02u-%02u %02u:%02u/%u/", pResult->charlist[i].szName, pResult->charlist[i].btClass,
+			pResult->charlist[i].btHair, pResult->charlist[i].wLevel, pResult->charlist[i].btSex, 
+			pResult->charlist[i].date.year, pResult->charlist[i].date.month, pResult->charlist[i].date.day,
+			pResult->charlist[i].date.hour, pResult->charlist[i].date.minute,
+			pResult->charlist[i].date.bflag);
 		p += strlen(p);
 	}
 	SendMsg(nCount, SM_CHARLIST, 0, 0, 1, (LPVOID)szData);

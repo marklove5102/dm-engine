@@ -20,6 +20,7 @@ CServer::~CServer(VOID)
 CClientObject* CServer::NewClientObject()
 {
 	CClientObj* pObj = newObject();
+	if (pObj == nullptr) return nullptr;
 	// 使用连接池获取数据库连接
 	if (pObj->GetAppDB().OpenDataBase(m_connectionPool) != SE_OK)
 	{

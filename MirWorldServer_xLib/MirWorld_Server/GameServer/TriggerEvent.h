@@ -20,9 +20,9 @@ public:
 	// nKeepTime: 持续时间
 	static TriggerEvent* Create(CAliveObject* pOwner, const char* szMapName, int x, int y, DWORD dwType, const char* m_szPage, UINT nKeepTime, UINT nRunTime);
 	VOID Destroy();
-	VOID Update();
-	VOID OnUpdate(CVisibleEvent* pEvent);
-	VOID OnClose(CVisibleEvent* pEvent);
+	VOID Update() override;
+	VOID OnUpdate(CVisibleEvent* pEvent) override;
+	VOID OnClose(CVisibleEvent* pEvent) override;
 protected:
 	CAliveObject* m_pOwner;
 	DWORD m_dwOwnerInstanceKey;

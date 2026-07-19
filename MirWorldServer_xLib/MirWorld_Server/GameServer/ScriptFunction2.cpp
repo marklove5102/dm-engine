@@ -14,6 +14,7 @@
 #include "guildEx.h"
 #include "SCDoor.h"
 #include "LogicMapMgr.h"
+#include "PhysicsMap.h"
 #include "logicmap.h"
 #include "monstergenmanager.h"
 #include "GroupObject.h"
@@ -1998,4 +1999,135 @@ DEFINE_SCRIPT_FUNCTION(BOT) {
 	}
 	}
 	return TRUE;
+}END_SCRIPT_FUNCTION
+
+//----------------------------------------------------------------------------------------------------------------------------------------------------------
+//		描述：查看前方坐标的所有对象 (GM命令: @LOOKFRONT)
+//		注释：遍历玩家前方坐标，列出该位置所有对象的名字
+//----------------------------------------------------------------------------------------------------------------------------------------------------------
+DEFINE_SCRIPT_FUNCTION(LOOKFRONT) {
+	CLogicMap* pMap = pPlayer->GetMap();
+	if (pMap == nullptr) { pPlayer->SaySystem("你不在任何地图上!"); return 0; }
+
+	int x, y;
+	pPlayer->GetFrontPosition(x, y);
+
+	// 对象类型名称表 (按 e_object_type 枚举顺序)
+	static const char* s_szTypeNames[] = {
+		"掉落物", "NPC", "特效", "事件", "玩家", "怪物", "宠物", "守卫", "树木"
+	};
+	constexpr int nTypeCount = sizeof(s_szTypeNames) / sizeof(s_szTypeNames[0]);
+
+	pPlayer->SaySystem("---=== 前方(%d,%d) 对象列表 ===---", x, y);
+
+	int nFound = 0;
+	for (int i = 0; i < nTypeCount; i++)
+	{
+		e_object_type eType = static_cast<e_object_type>(i);
+		CMapObject* pObj = pMap->FindObject(x, y, eType);
+		if (pObj == nullptr) continue;
+
+		const char* pszName = nullptr;
+		if (eType == OBJ_DOWNITEM)
+		{
+			CDownItemObject* pDown = static_cast<CDownItemObject*>(pObj);
+			pszName = pDown->GetItem().baseitem.szName;
+		}
+		else
+		{
+			pszName = pObj->GetName();
+		}
+
+		if (pszName == nullptr || pszName[0] == '\0')
+			pszName = "(无名)";
+
+		pPlayer->SaySystem("[%-6s] %s", s_szTypeNames[i], pszName);
+		nFound++;
+	}
+
+	if (nFound == 0)
+		pPlayer->SaySystem("(该位置没有任何对象)");
+	else
+		pPlayer->SaySystem("---=== 共 %d 个对象 ===---", nFound);
+
+	return 1;
+}END_SCRIPT_FUNCTION
+
+//----------------------------------------------------------------------------------------------------------------------------------------------------------
+//		描述：检查前方坐标的锁层状态 (GM命令: @CHECKLOCK)
+//		注释：显示 动态锁(IsLocked) + 物理阻挡(PhysicsMap::IsBlocked) + cell上所有对象
+//----------------------------------------------------------------------------------------------------------------------------------------------------------
+DEFINE_SCRIPT_FUNCTION(CHECKLOCK) {
+	CLogicMap* pMap = pPlayer->GetMap();
+	if (pMap == nullptr) { pPlayer->SaySystem("你不在任何地图上!"); return 0; }
+
+	int x, y;
+	pPlayer->GetFrontPosition(x, y);
+
+	BOOL bDynamicLocked = pMap->IsLocked(x, y);
+	BOOL bPhysicsBlocked = FALSE;
+	CPhysicsMap* pPhysicsMap = pMap->GetPhysicsMap();
+	if (pPhysicsMap != nullptr)
+		bPhysicsBlocked = pPhysicsMap->IsBlocked(x, y);
+
+	pPlayer->SaySystem("---=== 前方(%d,%d) 阻挡分析 ===---", x, y);
+	pPlayer->SaySystem("动态锁(IsLocked)     = %s", bDynamicLocked ? "TRUE (运行时LockPos)" : "FALSE");
+	if (pPhysicsMap != nullptr)
+		pPlayer->SaySystem("物理阻挡(PhysicsMap) = %s", bPhysicsBlocked ? "TRUE (地形/地图文件)" : "FALSE");
+	else
+		pPlayer->SaySystem("物理阻挡(PhysicsMap) = N/A (无物理地图)");
+	BOOL bTotalBlocked = pMap->IsBlocked(x, y);
+	pPlayer->SaySystem("综合阻挡(IsBlocked)  = %s", bTotalBlocked ? "TRUE (不可行走)" : "FALSE (可走)");
+
+	// 列出该格子上所有对象
+	int nFound = 0;
+	for (int i = 0; i < OBJ_MAX; i++)
+	{
+		CMapObject* pObj = pMap->FindObject(x, y, (e_object_type)i);
+		if (pObj == nullptr) continue;
+		const char* pszName = pObj->GetName();
+		if (pszName == nullptr || pszName[0] == '\0') pszName = "(无名)";
+		pPlayer->SaySystem("  [type=%d] %s", i, pszName);
+		nFound++;
+	}
+	if (nFound == 0)
+		pPlayer->SaySystem("  (cell上无任何对象)");
+
+	return 1;
+}END_SCRIPT_FUNCTION
+
+//----------------------------------------------------------------------------------------------------------------------------------------------------------
+//		描述：清除前方坐标的动态锁 (GM命令: @CLEARLOCK)
+//		注释：强制 UnLockPos 清除僵尸锁，打印清除前后状态及物理阻挡信息
+//----------------------------------------------------------------------------------------------------------------------------------------------------------
+DEFINE_SCRIPT_FUNCTION(CLEARLOCK) {
+	CLogicMap* pMap = pPlayer->GetMap();
+	if (pMap == nullptr) { pPlayer->SaySystem("你不在任何地图上!"); return 0; }
+
+	int x, y;
+	pPlayer->GetFrontPosition(x, y);
+
+	BOOL bWasLocked = pMap->IsLocked(x, y);
+	BOOL bPhysicsBlocked = FALSE;
+	CPhysicsMap* pPhysicsMap = pMap->GetPhysicsMap();
+	if (pPhysicsMap != nullptr)
+		bPhysicsBlocked = pPhysicsMap->IsBlocked(x, y);
+
+	pPlayer->SaySystem("前方(%d,%d) 清除前 IsLocked=%s PhysicsBlocked=%s",
+		x, y,
+		bWasLocked ? "TRUE" : "FALSE",
+		bPhysicsBlocked ? "TRUE" : "FALSE");
+
+	if (bWasLocked) {
+		pMap->UnLockPos(x, y);
+		BOOL bNowLocked = pMap->IsLocked(x, y);
+		pPlayer->SaySystem("清除后 IsLocked=%s (动态锁已清除%s)",
+			bNowLocked ? "TRUE" : "FALSE",
+			bNowLocked ? "? 异常!" : "");
+	} else {
+		pPlayer->SaySystem("该位置无动态锁%s",
+			bPhysicsBlocked ? " (但有物理地形阻挡, 无法通过解锁消除)" : "");
+	}
+
+	return 1;
 }END_SCRIPT_FUNCTION

@@ -205,6 +205,7 @@ VOID CClientObj::HandleDropItem(PMIRMSG pMsg, int datasize)
 	if (!m_pPlayer->CanDropItem()) return;
 	if (m_pPlayer->DropBagItem(pMsg->dwFlag))
 	{
+		m_pPlayer->SaveDropItemTime();
 		m_pPlayer->SendMsg(pMsg->dwFlag, 0x258, 0, 0, 0);
 		m_pPlayer->SendWeightChanged();
 	}
@@ -220,6 +221,7 @@ VOID CClientObj::HandlePickupItem(PMIRMSG pMsg, int datasize)
 	{
 		if (m_pPlayer->PickupItem())
 		{
+			m_pPlayer->SavePickupItemTime();
 			m_pPlayer->SendWeightChanged();
 		}
 	}
@@ -230,22 +232,21 @@ VOID CClientObj::HandleTakeOnItem(PMIRMSG pMsg, int datasize)
 	if (!m_pPlayer->CanEquipChange()) return;
 	BOOL bResult = m_pPlayer->EquipItem((int)pMsg->wParam[0], pMsg->dwFlag);
 	SendEquipItemResult(bResult, (int)pMsg->wParam[0], pMsg->dwFlag);
+	m_pPlayer->SaveEquipChangeTime();
 }
 
 VOID CClientObj::HandleTakeOffItem(PMIRMSG pMsg, int datasize)
 {
 	if (!m_pPlayer->CanEquipChange()) return;
 	SendUnEquipItemResult(m_pPlayer->UnEquipItem((int)pMsg->wParam[0], pMsg->dwFlag), (int)pMsg->wParam[0], pMsg->dwFlag);
+	m_pPlayer->SaveEquipChangeTime();
 }
 
 VOID CClientObj::HandleUseItem(PMIRMSG pMsg, int datasize)
 {
-	if (!m_pPlayer->CanUseItem())
-	{
-		m_pPlayer->SendEatFail();
-		return;
-	}
+	if (!m_pPlayer->CanUseItem()) return;
 	m_pPlayer->UseItem(pMsg->dwFlag, static_cast<DWORD>(MAKELONG(pMsg->wParam[0], pMsg->wParam[1])));
+	m_pPlayer->SaveUseItemTime();
 }
 
 VOID CClientObj::HandleDigCorpse(PMIRMSG pMsg, int datasize)
@@ -650,9 +651,8 @@ VOID CClientObj::HandleFengHao(PMIRMSG pMsg, int datasize)
 
 VOID CClientObj::HandleFuncCollection(PMIRMSG pMsg, int datasize)
 {
-	switch (str_hash(pMsg->data))  // 注意：是运行时哈希
+	if (_stricmp(pMsg->data, "GameTimeMgr") == 0)
 	{
-	case "GameTimeMgr"_hash: {
 		GameTimeMgr* pGameTimeMgr = (GameTimeMgr*)pMsg->data;
 		switch (pGameTimeMgr->btCode)
 		{
@@ -674,9 +674,9 @@ VOID CClientObj::HandleFuncCollection(PMIRMSG pMsg, int datasize)
 		}
 		break;
 		}
-		break;
 	}
-	case "guildmgr"_hash: {
+	else if (_stricmp(pMsg->data, "guildmgr") == 0)
+	{
 		Guildmgr* pGuildmgr = (Guildmgr*)pMsg->data;
 		switch (pGuildmgr->btCode)
 		{
@@ -844,9 +844,9 @@ VOID CClientObj::HandleFuncCollection(PMIRMSG pMsg, int datasize)
 		}
 		break;
 		}
-		break;
 	}
-	case "expback2020"_hash: {
+	else if (_stricmp(pMsg->data, "expback2020") == 0)
+	{
 		ExpBack* pExpBack = (ExpBack*)pMsg->data;
 		switch (pExpBack->btCode)
 		{
@@ -861,9 +861,9 @@ VOID CClientObj::HandleFuncCollection(PMIRMSG pMsg, int datasize)
 		}
 		break;
 		}
-		break;
 	}
-	case "ActivityScore2014"_hash: {
+	else if (_stricmp(pMsg->data, "ActivityScore2014") == 0)
+	{
 		ActivityScore2014* pActivityScore2014 = (ActivityScore2014*)pMsg->data;
 		switch (pActivityScore2014->btCode)
 		{
@@ -876,9 +876,9 @@ VOID CClientObj::HandleFuncCollection(PMIRMSG pMsg, int datasize)
 		}
 		break;
 		}
-		break;
 	}
-	case "CheckPlayerMapJump"_hash: {
+	else if (_stricmp(pMsg->data, "CheckPlayerMapJump") == 0)
+	{
 		MapJump* pMapJump = (MapJump*)pMsg->data;
 		switch (pMapJump->btCode)
 		{
@@ -893,19 +893,18 @@ VOID CClientObj::HandleFuncCollection(PMIRMSG pMsg, int datasize)
 		}
 		break;
 		}
-		break;
 	}
-	case "LianYu18"_hash: {
+	else if (_stricmp(pMsg->data, "LianYu18") == 0)
+	{
 		BossTJ* pBossTJ = (BossTJ*)pMsg->data;
 		if (pBossTJ->btCode == 2 && pBossTJ->nNum == 1)
 			CBossTJ::GetInstance()->SendBoss(m_pPlayer, pBossTJ->sName);
-		break;
 	}
-	case "chatglog2023"_hash: {
+	else if (_stricmp(pMsg->data, "chatglog2023") == 0)
+	{
 
-		break;
 	}
-	default:
+	else
 	{
 		char szPage[64];
 		snprintf(szPage, sizeof(szPage), "自定义界面.%s", pMsg->data);
@@ -942,7 +941,7 @@ VOID CClientObj::HandleFuncCollection(PMIRMSG pMsg, int datasize)
 		int nActType;
 		char szActType[16];
 		if (!ReadInt(nActType)) return;
-		sprintf(szActType, "%d", nActType);
+		snprintf(szActType, 16, "%d", nActType);
 		m_pPlayer->GetScriptTarget()->SetVariableValue("CustomActType", szActType);
 		BYTE byHaveStrData = 0;
 		if (!ReadByte(byHaveStrData)) return;
@@ -952,14 +951,14 @@ VOID CClientObj::HandleFuncCollection(PMIRMSG pMsg, int datasize)
 			char szStrCount[16];
 			if (!ReadInt(nStrCount)) return;
 			if (nStrCount < 0 || nStrCount > 100) return;
-			sprintf(szStrCount, "%d", nStrCount);
+			snprintf(szStrCount, 16, "%d", nStrCount);
 			m_pPlayer->GetScriptTarget()->SetVariableValue("CustomStrCount", szStrCount);
 			char szVar[16];
 			for (int i = 0; i < nStrCount; i++)
 			{
 				const char* pszStr = nullptr;
 				if (!ReadString(pszStr)) return;
-				sprintf(szVar, "CustomS%d", i + 1);
+				snprintf(szVar, 16, "CustomS%d", i + 1);
 				m_pPlayer->GetScriptTarget()->SetVariableValue(szVar, (char*)pszStr);
 			}
 		}
@@ -971,20 +970,19 @@ VOID CClientObj::HandleFuncCollection(PMIRMSG pMsg, int datasize)
 			char szIntCount[16];
 			if (!ReadInt(nIntCount)) return;
 			if (nIntCount < 0 || nIntCount > 100) return;
-			sprintf(szIntCount, "%d", nIntCount);
+			snprintf(szIntCount, 16, "%d", nIntCount);
 			m_pPlayer->GetScriptTarget()->SetVariableValue("CustomIntCount", szIntCount);
 			char szVar[16], szVal[16];
 			int nVal;
 			for (int i = 0; i < nIntCount; i++)
 			{
 				if (!ReadInt(nVal)) return;
-				sprintf(szVar, "CustomN%d", i + 1);
-				sprintf(szVal, "%d", nVal);
+				snprintf(szVar, 16, "CustomN%d", i + 1);
+				snprintf(szVal, 16, "%d", nVal);
 				m_pPlayer->GetScriptTarget()->SetVariableValue(szVar, szVal);
 			}
 		}
 		CSystemScript::GetInstance()->Execute(m_pPlayer->GetScriptTarget(), szPage);
-	}
 	}
 }
 

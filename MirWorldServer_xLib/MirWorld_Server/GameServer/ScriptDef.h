@@ -73,7 +73,7 @@ typedef struct tagCallParamEx
 	{
 		nParam = val;
 		pszParam = szbuffer.data();
-		sprintf(szbuffer.data(), "%u", val);
+		snprintf(szbuffer.data(), szbuffer.size(), "%u", val);
 		return *this;
 	}
 

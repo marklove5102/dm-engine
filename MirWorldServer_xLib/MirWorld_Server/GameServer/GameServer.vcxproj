@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -62,7 +62,7 @@
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <FloatingPointModel>Fast</FloatingPointModel>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\Vendor\RapidJson\include;$(ProjectDir)..\..\mimalloc\include;$(ProjectDir)..\..\Vendor\VMProtect\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\Vendor\RapidJson\include;$(ProjectDir)..\..\mimalloc\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/execution-charset:gbk %(AdditionalOptions)</AdditionalOptions>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
@@ -72,7 +72,7 @@
       <ProgramDatabaseFile>$(OutDir)GameServer.pdb</ProgramDatabaseFile>
       <SubSystem>Console</SubSystem>
       <TargetMachine Condition="'$(Platform)'=='Win32'">MachineX86</TargetMachine>
-      <AdditionalLibraryDirectories>$(ProjectDir)..\..\Vendor\VMProtect\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -84,7 +84,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <WholeProgramOptimization>true</WholeProgramOptimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\Vendor\RapidJson\include;$(ProjectDir)..\..\mimalloc\include;$(ProjectDir)..\..\Vendor\VMProtect\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\Vendor\RapidJson\include;$(ProjectDir)..\..\mimalloc\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <FloatingPointModel>Fast</FloatingPointModel>
       <AdditionalOptions>/execution-charset:gbk %(AdditionalOptions)</AdditionalOptions>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -97,8 +97,9 @@
       <SubSystem>Console</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <TargetMachine Condition="'$(Platform)'=='Win32'">MachineX86</TargetMachine>
-      <AdditionalLibraryDirectories>$(ProjectDir)..\..\Vendor\VMProtect\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ProgramDatabaseFile>$(OutDir)GameServer.pdb</ProgramDatabaseFile>
     </Link>
   </ItemDefinitionGroup>
@@ -121,12 +122,10 @@
     <ClCompile Include="BotManager.cpp" />
     <ClCompile Include="BotPlayer.cpp" />
     <ClCompile Include="BundleManager.cpp" />
-    <ClCompile Include="AliveComponentsManager.cpp" />
-    <ClCompile Include="PlayerComponentManager.cpp" />
-    <ClCompile Include="MonsterComponentManager.cpp" />
-    <ClCompile Include="NpcComponentManager.cpp" />
     <ClCompile Include="Human_Achieve.cpp" />
     <ClCompile Include="gsClientMsgHandler.cpp" />
+    <ClCompile Include="Human_DoProcess.cpp" />
+    <ClCompile Include="Human_OnFunc.cpp" />
     <ClCompile Include="TimeAchieve.cpp" />
     <ClCompile Include="ChangeMapEvent.cpp" />
     <ClCompile Include="CmdProc.cpp" />
@@ -158,14 +157,18 @@
     <ClCompile Include="HumanPlayer.cpp" />
     <ClCompile Include="HumanPlayerMgr.cpp" />
     <ClCompile Include="Human_Action.cpp" />
+    <ClCompile Include="Human_Chat.cpp" />
     <ClCompile Include="Human_Community.cpp" />
     <ClCompile Include="Human_FengHao.cpp" />
     <ClCompile Include="Human_Guild.cpp" />
     <ClCompile Include="Human_Item.cpp" />
     <ClCompile Include="Human_Msg.cpp" />
+    <ClCompile Include="Human_PK.cpp" />
     <ClCompile Include="Human_Pet.cpp" />
+    <ClCompile Include="Human_Shop.cpp" />
     <ClCompile Include="Human_Skill.cpp" />
     <ClCompile Include="Human_Task.cpp" />
+    <ClCompile Include="Human_Trade.cpp" />
     <ClCompile Include="ItemBox.cpp" />
     <ClCompile Include="ItemManager.cpp" />
     <ClCompile Include="MonsterAttack.cpp" />
@@ -247,7 +250,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\res\resource.h" />
-    <ClInclude Include="AchievementComponent.h" />
     <ClInclude Include="AiObjectEx.h" />
     <ClInclude Include="AliveObject.h" />
     <ClInclude Include="AutoScriptManager.h" />
@@ -264,33 +266,6 @@
     <ClInclude Include="BotManager.h" />
     <ClInclude Include="BotPlayer.h" />
     <ClInclude Include="BundleManager.h" />
-    <ClInclude Include="ChatComponent.h" />
-    <ClInclude Include="ECS.h" />
-    <ClInclude Include="ECSComponentPool.h" />
-    <ClInclude Include="ECSDefines.h" />
-    <ClInclude Include="FenghaoComponent.h" />
-    <ClInclude Include="MarketComponent.h" />
-    <ClInclude Include="MiscStateComponent.h" />
-    <ClInclude Include="MonsterStateComponent.h" />
-    <ClInclude Include="NpcStateComponent.h" />
-    <ClInclude Include="PetComponent.h" />
-    <ClInclude Include="PkComponent.h" />
-    <ClInclude Include="RateLimitComponent.h" />
-    <ClInclude Include="ECSRegistry.h" />
-    <ClInclude Include="RecalcCacheComponent.h" />
-    <ClInclude Include="ScriptVarComponent.h" />
-    <ClInclude Include="ShieldStateComponent.h" />
-    <ClInclude Include="SocialComponent.h" />
-    <ClInclude Include="SpecialEquipComponent.h" />
-    <ClInclude Include="StaminaComponent.h" />
-    <ClInclude Include="TaskComponent.h" />
-    <ClInclude Include="TimerComponent.h" />
-    <ClInclude Include="ECSView.h" />
-    <ClInclude Include="ECSWorld.h" />
-    <ClInclude Include="AliveComponentsManager.h" />
-    <ClInclude Include="PlayerComponentManager.h" />
-    <ClInclude Include="MonsterComponentManager.h" />
-    <ClInclude Include="NpcComponentManager.h" />
     <ClInclude Include="gsClientMsgTable.h" />
     <ClInclude Include="TimeAchieve.h" />
     <ClInclude Include="ChangeMapEvent.h" />
@@ -378,17 +353,13 @@
     <ClInclude Include="TimeSystem.h" />
     <ClInclude Include="tinystr.h" />
     <ClInclude Include="tinyxml.h" />
-    <ClInclude Include="TitleComponent.h" />
     <ClInclude Include="TitleManager.h" />
     <ClInclude Include="TopManager.h" />
     <ClInclude Include="TriggerEvent.h" />
-    <ClInclude Include="UpgradeItemComponent.h" />
     <ClInclude Include="VisibleEvent.h" />
     <ClInclude Include="vMap.h" />
-    <ClInclude Include="VMProtectHelper.h" />
     <ClInclude Include="WeatherSystem.h" />
     <ClInclude Include="xSimpleSocket.h" />
-    <ClInclude Include="ZhenBaoComponent.h" />
     <ClInclude Include="ZombiHoleEvent.h" />
   </ItemGroup>
   <ItemGroup>
@@ -398,7 +369,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\Docs\ECS_使用手册.md" />
+    <None Include="HumanPlayer.inl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

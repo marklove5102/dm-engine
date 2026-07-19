@@ -5,7 +5,6 @@
 #include "monsterex.h"
 #include "monitemsmgr.h"
 #include "gameworld.h"
-#include "MonsterComponentManager.h"
 
 CMonsterManagerEx::CMonsterManagerEx(VOID)
 {
@@ -53,7 +52,6 @@ CMonsterEx* CMonsterManagerEx::CreateMonster(MonsterClass* pClass, int mapid, in
 		deleteObject(pMonster);
 		return nullptr;
 	}
-
 	if (pGen)
 		pGen->curcount++;
 	pClass->nCount++;
@@ -83,7 +81,6 @@ BOOL CMonsterManagerEx::AddExtraMonster(CMonsterEx* pMonster)
 	if (id == 0)return FALSE;
 	id |= (OBJ_MONSTER << 24);
 	pMonster->SetId(id);
-	MonsterComponentManager::GetInstance()->CreateMonsterComponents(pMonster);
 	return TRUE;
 }
 
@@ -141,7 +138,6 @@ CMonsterEx* CMonsterManagerEx::newObject()//创建一个怪物OBJECT, 并设置ID
 	{
 		id |= (OBJ_MONSTER << 24);
 		pMonster->SetId(id);
-		MonsterComponentManager::GetInstance()->CreateMonsterComponents(pMonster);
 	}
 	return pMonster;
 }
@@ -149,9 +145,7 @@ CMonsterEx* CMonsterManagerEx::newObject()//创建一个怪物OBJECT, 并设置ID
 VOID CMonsterManagerEx::deleteObject(CMonsterEx* pObject)
 {
 	if (pObject == nullptr)return;
-	UINT rawId = pObject->GetId();
-	MonsterComponentManager::GetInstance()->DestroyMonsterComponents(rawId);
-	m_xMonsterList.delObject(rawId & 0xffffff);
+	m_xMonsterList.delObject(pObject->GetId() & 0xffffff);
 	pObject->Clean();
 	m_xMonsterPool.deleteObject(pObject);
 }

@@ -22,7 +22,7 @@ VOID CTrapperEvent::Clean()
 VOID CTrapperEvent::OnEnter(CMapObject* pObject)
 {
 	if (pObject->GetType() == OBJ_PLAYER)
-		if (m_pTrapper) m_pTrapper->SetPendingDestroy();
+		if (m_pTrapper)m_pTrapper->Destroy();
 }
 
 VOID CTrapperEvent::EnterMap(CLogicMap* pMap, UINT x, UINT y)
@@ -44,23 +44,21 @@ VOID CTrapperEvent::OnLeaveMap(CLogicMap* pMap)
 	CMapCellInfo* pInfo = pMap->GetMapCellInfoShared(getX(), getY());
 	if (pInfo)
 	{
-		xListHost<CMapObject>::xListNode* pNode = pInfo->m_xObjectList.getHead();
-		while (pNode)
+		xListHelper<CMapObject> helper(&pInfo->m_xObjectList);
+		for (CMapObject* pObj = helper.first(); pObj != nullptr; pObj = helper.next())
 		{
-			if (pNode->getObject() && pNode->getObject()->GetType() == OBJ_MONSTER)
+			if (pObj && pObj->GetType() == OBJ_MONSTER)
 			{
-				CMonsterEx* pMonster = (CMonsterEx*)pNode->getObject();
+				CMonsterEx* pMonster = (CMonsterEx*)pObj;
 				if (pMonster->IsDeath() ||
 					pMonster->GetPropValue(PI_LEVEL) > this->m_pTrapper->GetDamage())
 				{
-					pNode = pNode->getNext();
 					continue;
 				}
 				if (pMonster->IsSystemFlagSeted(SF_SLEEP) &&
 					pMonster->GetSystemFlagParam(SF_SLEEP) == static_cast<DWORD>(reinterpret_cast<uintptr_t>(this)))
 					pMonster->SetSystemFlag(SF_SLEEP, FALSE);
 			}
-			pNode = pNode->getNext();
 		}
 	}
 	CEventObject::OnLeaveMap(pMap);
@@ -72,25 +70,23 @@ VOID CTrapperEvent::OnEnterMap(CLogicMap* pMap)
 	CMapCellInfo* pInfo = pMap->GetMapCellInfoShared(getX(), getY());
 	if (pInfo)
 	{
-		xListHost<CMapObject>::xListNode* pNode = pInfo->m_xObjectList.getHead();
-		while (pNode)
+		xListHelper<CMapObject> helper(&pInfo->m_xObjectList);
+		for (CMapObject* pObj = helper.first(); pObj != nullptr; pObj = helper.next())
 		{
-			if (pNode->getObject() && pNode->getObject()->GetType() == OBJ_MONSTER)
+			if (pObj && pObj->GetType() == OBJ_MONSTER)
 			{
-				CMonsterEx* pMonster = (CMonsterEx*)pNode->getObject();
+				CMonsterEx* pMonster = (CMonsterEx*)pObj;
 				if (pMonster->IsDeath() ||
 					pMonster->GetPropValue(PI_LEVEL) > this->m_pTrapper->GetDamage())
 				{
-					pNode = pNode->getNext();
 					continue;
 				}
 				this->m_pTrapper->AddTrappedCount();
 				pMonster->SetSystemFlag(SF_SLEEP, TRUE, (DWORD)this, m_pTrapper->GetLastTime());
 			}
 
-			if (pNode->getObject() && pNode->getObject()->GetType() == OBJ_PLAYER)
+			if (pObj && pObj->GetType() == OBJ_PLAYER)
 				this->m_pTrapper->SetFailed();
-			pNode = pNode->getNext();
 		}
 	}
 }
@@ -100,7 +96,6 @@ xObjectPool<CMonsterTrapper> CMonsterTrapper::m_xEventPool;
 CMonsterTrapper::CMonsterTrapper(VOID):
 	m_dwMonsterCount(0),
 	m_bFailed(FALSE),
-	m_bPendingDestroy(FALSE),
 	m_nDamage(0),
 	m_dwLastTime(0),
 	m_dwOwnerInstanceKey(0),
@@ -115,11 +110,6 @@ CMonsterTrapper::CMonsterTrapper(VOID):
 
 CMonsterTrapper::~CMonsterTrapper(VOID)
 {
-	for (auto& trapped : m_pTrapped)
-	{
-		delete trapped;
-		trapped = nullptr;
-	}
 }
 
 VOID CMonsterTrapper::OnUpdate(CVisibleEvent* pEvent)
@@ -220,11 +210,6 @@ VOID CMonsterTrapper::Destroy()
 
 VOID CMonsterTrapper::Update()
 {
-	if (m_bPendingDestroy)
-	{
-		Destroy();
-		return;
-	}
 	for (auto& event : m_pEvents)
 	{
 		if (event)

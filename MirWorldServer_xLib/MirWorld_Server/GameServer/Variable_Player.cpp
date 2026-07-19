@@ -149,7 +149,7 @@ DEFINE_SCRIPT_VAR(LOGINTIME) {
 	if (pStringCache == nullptr)return FALSE;
 	CSystemTime* pLoginTime = pPlayer->GetLoginTime();
 	result.SetValue(pStringCache);
-	sprintf(pStringCache, "%d-%d-%d %d:%02d:%02d",
+	snprintf(pStringCache, 256, "%d-%d-%d %d:%02d:%02d",
 		pLoginTime->GetYear(), pLoginTime->GetMonth(), pLoginTime->GetDay(),
 		pLoginTime->GetHour(), pLoginTime->GetMinute(), pLoginTime->GetSecond());
 }END_SCRIPT_VAR

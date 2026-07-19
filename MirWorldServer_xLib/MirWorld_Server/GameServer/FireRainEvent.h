@@ -12,9 +12,9 @@ public:
 	FireRainEvent& operator=(const FireRainEvent&) = delete; // ½ûÖ¹¿½±´¸³Öµ
 	static FireRainEvent* Create(CAliveObject* pOwner, int x, int y, UINT nRange, UINT nDamage, UINT nKeepTime, UINT nRunTime);
 	VOID Destroy();
-	VOID Update();
-	VOID OnUpdate(CVisibleEvent* pEvent);
-	VOID OnClose(CVisibleEvent* pEvent);
+	VOID Update() override;
+	VOID OnUpdate(CVisibleEvent* pEvent) override;
+	VOID OnClose(CVisibleEvent* pEvent) override;
 protected:
 	CAliveObject* m_pOwner;
 	DWORD m_dwOwnerInstanceKey;

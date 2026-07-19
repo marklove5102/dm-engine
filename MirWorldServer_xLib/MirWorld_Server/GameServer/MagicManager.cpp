@@ -8,6 +8,7 @@
 #include "tinyxml.h"
 #include "humanplayermgr.h"
 
+xObjectPool<xListHost<MAGICCLASS>::xListNode> CMagicManager::m_xMagicNodePool;
 CMagicManager::CMagicManager(VOID)
 {
 	m_pMagicArray.fill(nullptr);
@@ -29,7 +30,7 @@ VOID CMagicManager::ClearMagicData()
 		{
 			delete pObject;
 		}
-		delete pNode;
+		m_xMagicNodePool.deleteObject(pNode);
 		pNode = pNext;
 	}
 	m_xMagicClassList.~xListHost<MAGICCLASS>();
@@ -46,16 +47,14 @@ VOID CMagicManager::ReloadAllPlayerSkills()const
 	CHumanPlayer* pPlayer = pPlayerList->First();
 	while (pPlayer != nullptr)
 	{
-		USERMAGIC* pMagic = pPlayer->GetFirstMagic();
-		while (pMagic != nullptr)
+		for (auto& up : pPlayer->GetMagics())
 		{
-			if (pMagic->magic.wId != 0)
+			if (up->magic.wId != 0)
 			{
-				MAGICCLASS* pNewClass = GetClassById(pMagic->magic.wId);
+				MAGICCLASS* pNewClass = GetClassById(up->magic.wId);
 				if (pNewClass != nullptr)
-					pMagic->pClass = pNewClass;
+					up->pClass = pNewClass;
 			}
-			pMagic = pMagic->pNext;
 		}
 		pPlayer = pPlayerList->Next();
 	}
@@ -299,18 +298,19 @@ BOOL CMagicManager::AddMagicClass(MAGICCLASS* pMagicclass)
 	MAGICCLASS* pTemp = new MAGICCLASS;
 	if (pTemp == nullptr)return FALSE;
 	*pTemp = *pMagicclass;
-	pNode = new xListHost<MAGICCLASS>::xListNode(pTemp);
+	pNode = m_xMagicNodePool.newObject();
 	if (pNode == nullptr)
 	{
 		m_strErrorMsg = "分配node失败!";
 		delete pTemp;
 		return FALSE;
 	}
+	pNode->setObject(pTemp);
 	if (!m_xMagicClassList.addNode(pNode))
 	{
 		m_strErrorMsg = "添加node失败!";
 		delete pTemp;
-		delete pNode;
+		m_xMagicNodePool.deleteObject(pNode);
 		return FALSE;
 	}
 	if (!m_MagicClassHash.HAdd(pTemp->szName, (LPVOID)pNode))
@@ -318,7 +318,7 @@ BOOL CMagicManager::AddMagicClass(MAGICCLASS* pMagicclass)
 		m_strErrorMsg = "加入到名字表中失败!";
 		m_xMagicClassList.removeNode(pNode);
 		delete pTemp;
-		delete pNode;
+		m_xMagicNodePool.deleteObject(pNode);
 		return FALSE;
 	}
 	m_pMagicArray[pTemp->id] = pTemp;

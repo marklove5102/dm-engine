@@ -11,9 +11,9 @@ public:
 	CDamageEvent& operator=(const CDamageEvent&) = delete; // ½ûÖ¹¿½±´¸³Öµ
 	static CDamageEvent* Create(UINT mapid, int x, int y, UINT nRange, UINT nView, DWORD dwParam1, DWORD dwParam2, UINT nDamage, damage_type damagetype, CAliveObject* pOwner, UINT nKeepTime, UINT nRunTime);
 	VOID Destroy();
-	VOID Update();
-	VOID OnUpdate(CVisibleEvent* pEvent);
-	VOID OnClose(CVisibleEvent* pEvent);
+	VOID Update() override;
+	VOID OnUpdate(CVisibleEvent* pEvent) override;
+	VOID OnClose(CVisibleEvent* pEvent) override;
 
 protected:
 	CAliveObject* m_pOwner;

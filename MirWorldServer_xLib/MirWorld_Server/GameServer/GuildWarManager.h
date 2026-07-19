@@ -11,7 +11,7 @@ typedef struct tagGuildWar
 	CServerTimer tmrWar;
 }GuildWar;
 
-#define	MAX_GUILD_WAR	1024
+constexpr int MAX_GUILD_WAR = 1024;
 class CGuildWarManager :
 	public xError,
 	public xSingletonClass<CGuildWarManager>

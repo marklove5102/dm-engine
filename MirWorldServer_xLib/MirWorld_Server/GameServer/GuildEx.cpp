@@ -372,12 +372,12 @@ BOOL CGuildEx::ChangeGroup(const char* pszName, UINT nLevel, UINT nOldLevel)
 	char szText[256];
 	if (nLevel < 11)
 	{
-		sprintf(szText, "%s 被任命为 %s!", pszName, pNewGroup->GetName());
+		snprintf(szText, 256, "%s 被任命为 %s!", pszName, pNewGroup->GetName());
 		SendWords(szText);
 	}
 	else
 	{
-		sprintf(szText, "%s 被免职!", pszName);
+		snprintf(szText, 256, "%s 被免职!", pszName);
 		SendWords(szText);
 	}
 	CHumanPlayer* p = pGuildMember->GetRefPlayer();
@@ -438,7 +438,7 @@ VOID CGuildEx::SendGuildTowerInfo(CHumanPlayer* pPlayer)
 	for (int i = 1; i <= 10; i++)
 	{
 		// 在szText + offset位置开始写入
-		offset += sprintf(szText + offset, "%d/%d/%d/%d/%d/%s/", i, nGuildOfficialCount[m_nLevel][i],
+		offset += snprintf(szText + offset, 2048 - offset, "%d/%d/%d/%d/%d/%s/", i, nGuildOfficialCount[m_nLevel][i],
 			nGuildOfficialCountMax[i], btGuildOfficialCrony[i], nGuildOfficialPrice[i], sGuildOfficial[i]);
 	}
 	packet->push(szText, offset);
@@ -646,14 +646,14 @@ VOID CGuildEx::Save()
 	o_strncpy(szFilename, m_szFilename.data(), len);
 	strcpy(szFilename + len - 3, "ini");
 
-	FILE* fp = fopen(szFilename, "w");
-	if (fp == nullptr)return;
+	FileGuard fp(fopen(szFilename, "w"));
+	if (!fp)return;
 	fprintf(fp, "[Guild]\nExp = %u\nLevel = %u\nMaxCount=%u\nRecruitState=%u\n", m_nExp, m_nLevel, m_nMaxMemberCount, m_boRecruitState);
-	fclose(fp);
+	// 第一个文件写入完成, 移动赋值打开第二个文件时自动关闭前一个
 
 	strcpy(szFilename + len - 3, "txt");
-	fp = fopen(szFilename, "w");
-	if (fp == nullptr)return;
+	fp = FileGuard(fopen(szFilename, "w"));
+	if (!fp)return;
 
 	fprintf(fp, "%s\n", CGameWorld::GetInstance()->GetName(ENI_GUILDNOTICE));
 	int iptr = 0;
@@ -718,13 +718,15 @@ VOID CGuildEx::Save()
 	}
 	fputc('\n', fp);
 
-	fclose(fp);
+	// fclose 由 FileGuard 析构自动完成
 	strcpy(szFilename + len - 3, "var");
 	m_xVarList.SaveToFile(szFilename);
 }
 
-static CGuildGroupEx* g_xTempGroupList[100];
-static CGuildMemberEx* g_xTempMemberList[1000];
+// thread_local: 行会加载是按文件串行执行, 但与其它世界的工作线程并行,
+// 此处临时缓冲区改为线程局部存储避免数据竞争。
+thread_local CGuildGroupEx* g_xTempGroupList[100];
+thread_local CGuildMemberEx* g_xTempMemberList[1000];
 BOOL CGuildEx::Load(const char* pszFile)
 {
 	CSettingFile sfGuild;
@@ -888,7 +890,7 @@ BOOL CGuildEx::AddApplyPlayer(CHumanPlayer* pOperator)
 	case 1: pszSex = "女"; break;
 	default: pszSex = "男"; break;
 	}
-	sprintf(szbuffer, "%s#%d#%s#%u#%u-%u", szName, nLevel, pszSex, btJob, wMonth, wDay);
+	snprintf(szbuffer, 64, "%s#%d#%s#%u#%u-%u", szName, nLevel, pszSex, btJob, wMonth, wDay);
 	if (m_xApplyPlayers.IndexOf(szbuffer) == -1)
 		m_xApplyPlayers.Add(szbuffer);
 	else
@@ -1031,7 +1033,7 @@ BOOL CGuildEx::SendDurationMemberList(CHumanPlayer* pPlayer)
 	{
 		if (m_xGroups[n] && m_xGroups[n]->GetCount() > 0)
 		{
-			sprintf(szText, "#%u/*%s/", m_xGroups[n]->GetLevel(), m_xGroups[n]->GetName());
+			snprintf(szText, 256, "#%u/*%s/", m_xGroups[n]->GetLevel(), m_xGroups[n]->GetName());
 			packet1->push(szText);
 			m_xGroups[n]->AppendDurationMembers(*packet1);
 			nGroupCount++;
@@ -1089,7 +1091,7 @@ BOOL CGuildEx::SendExp(CHumanPlayer* pPlayer)
 	char szText[256];
 	CGuildMemberEx* pGuildMember = (CGuildMemberEx*)m_xMemberNameList.ObjectOf(pPlayer->GetName());
 	if (pGuildMember == nullptr)return FALSE;
-	sprintf(szText, "%s/%u/%u/%u/%u", GetName(), m_nLevel, m_nExp, pGuildMember->GetExp(), pGuildMember->GetPower());
+	snprintf(szText, 256, "%s/%u/%u/%u/%u", GetName(), m_nLevel, m_nExp, pGuildMember->GetExp(), pGuildMember->GetPower());
 	pPlayer->SendMsg(0, 0x2cd, m_xMemberNameList.GetCount(), m_nMaxMemberCount, 0, (LPVOID)szText);
 	return TRUE;
 }

@@ -325,9 +325,12 @@ void BTEngine::Reset()
 {
     m_logs.clear();
     m_memPositions.clear();
+    m_decoratorState.clear();
     m_stepCount = 0;
     m_execOrder = 0;
-    m_ctx = ExecutionContext();
+    // 注意：frameTime 与 m_decoratorState 的时间状态由 ClearTimeState() 管理
+    // Reset 只清日志/记忆位置/装饰器状态/计数，不再重置 frameTime
+    // 这样自动播放时 AdvanceFrame 累加的时间不会被 ExecuteFull→Reset 清零
 }
 
 void BTEngine::ResetNodeStates(std::shared_ptr<BTNode> node)
@@ -350,21 +353,22 @@ BTResult BTEngine::ExecuteNode(std::shared_ptr<BTNode> node)
     BTResult result;
     switch (node->type)
     {
-    case BTNodeType::SEQUENCE:       result = ExecuteSequence(node); break;
-    case BTNodeType::SELECTOR:       result = ExecuteSelector(node); break;
-    case BTNodeType::PARALLEL:       result = ExecuteParallel(node); break;
-    case BTNodeType::RANDOM:         result = ExecuteRandom(node); break;
-    case BTNodeType::PROBABILITY:    result = ExecuteProbability(node); break;
-    case BTNodeType::MEM_SEQUENCE:   result = ExecuteMemSequence(node); break;
-    case BTNodeType::MEM_SELECTOR:   result = ExecuteMemSelector(node); break;
-    case BTNodeType::INVERTER:       result = ExecuteInverter(node); break;
-    case BTNodeType::DECORATOR_REPEAT: result = ExecuteDecoratorRepeat(node); break;
+    case BTNodeType::SEQUENCE:          result = ExecuteSequence(node); break;
+    case BTNodeType::SELECTOR:          result = ExecuteSelector(node); break;
+    case BTNodeType::PARALLEL:          result = ExecuteParallel(node); break;
+    case BTNodeType::RANDOM:            result = ExecuteRandom(node); break;
+    case BTNodeType::PROBABILITY:       result = ExecuteProbability(node); break;
+    case BTNodeType::MEM_SEQUENCE:      result = ExecuteMemSequence(node); break;
+    case BTNodeType::MEM_SELECTOR:      result = ExecuteMemSelector(node); break;
+    case BTNodeType::INVERTER:          result = ExecuteInverter(node); break;
+    case BTNodeType::DECORATOR_REPEAT:  result = ExecuteDecoratorRepeat(node); break;
     case BTNodeType::DECORATOR_TIMEOUT: result = ExecuteDecoratorTimeout(node); break;
-    case BTNodeType::DECORATOR_COOLDOWN: result = ExecuteDecoratorCooldown(node); break;
-    case BTNodeType::SUCCEEDER:      result = ExecuteSucceeder(node); break;
-    case BTNodeType::FAILER:         result = ExecuteFailer(node); break;
-    case BTNodeType::CONDITION:      result = ExecuteCondition(node); break;
-    case BTNodeType::ACTION:         result = ExecuteAction(node); break;
+    case BTNodeType::DECORATOR_COOLDOWN:result = ExecuteDecoratorCooldown(node); break;
+    case BTNodeType::DECORATOR_PERIODIC:result = ExecuteDecoratorPeriodic(node); break;
+    case BTNodeType::SUCCEEDER:         result = ExecuteSucceeder(node); break;
+    case BTNodeType::FAILER:            result = ExecuteFailer(node); break;
+    case BTNodeType::CONDITION:         result = ExecuteCondition(node); break;
+    case BTNodeType::ACTION:            result = ExecuteAction(node); break;
     default: result = BTResult::FAILURE;
     }
 
@@ -374,9 +378,31 @@ BTResult BTEngine::ExecuteNode(std::shared_ptr<BTNode> node)
     return result;
 }
 
+void BTEngine::ClearTimeState()
+{
+    m_decoratorState.clear();
+    m_ctx.frameTime = 0;
+}
+
 void BTEngine::ExecuteFull(std::shared_ptr<BTNode> root)
 {
+    // 完整执行(单步):清空全部状态含时间,独立运行一次
+    ClearTimeState();
     Reset();
+    ResetNodeStates(root);
+    ExecuteNode(root);
+}
+
+void BTEngine::ExecuteStep(std::shared_ptr<BTNode> root)
+{
+    // 自动播放:保留跨tick时间状态(m_decoratorState/frameTime)
+    // 使 ActionRest(duration)/ActionRevive(delay)/DecoratorCooldown(ms) 等
+    // 时间相关节点能跨 tick 累计计时,产生可见的 RUNNING→SUCCESS 演变
+    m_logs.clear();
+    m_stepCount = 0;
+    m_execOrder = 0;
+    // 不清 m_decoratorState,不重置 frameTime(由 AdvanceFrame 累加)
+    // 不清 m_memPositions(MemSequence/MemSelector 跨tick记忆)
     ResetNodeStates(root);
     ExecuteNode(root);
 }
@@ -393,199 +419,463 @@ void BTEngine::AddLog(const std::wstring& nodeId, const std::wstring& nodeName, 
     m_stepCount++;
 }
 
+// ============================================================================
+// 复合节点 - 语义与 GameServer BotBehaviorComposite.cpp 完全对齐
+// ============================================================================
 BTResult BTEngine::ExecuteSequence(std::shared_ptr<BTNode> node)
 {
-    for (auto& child : node->children)
-    {
-        BTResult r = ExecuteNode(child);
-        if (r != BTResult::SUCCESS) return r;
-    }
-    return BTResult::SUCCESS;
+	for (auto& child : node->children)
+	{
+		BTResult r = ExecuteNode(child);
+		if (r != BTResult::SUCCESS)
+			return r;   // FAILURE/RUNNING 立即返回
+	}
+	return BTResult::SUCCESS;
 }
 
 BTResult BTEngine::ExecuteSelector(std::shared_ptr<BTNode> node)
 {
-    for (auto& child : node->children)
-    {
-        BTResult r = ExecuteNode(child);
-        if (r == BTResult::SUCCESS) return BTResult::SUCCESS;
-    }
-    return BTResult::FAILURE;
+	for (auto& child : node->children)
+	{
+		BTResult r = ExecuteNode(child);
+		if (r == BTResult::SUCCESS)
+			return BTResult::SUCCESS;
+		// FAILURE 则继续尝试下一个子节点
+	}
+	return BTResult::FAILURE;
 }
 
 BTResult BTEngine::ExecuteParallel(std::shared_ptr<BTNode> node)
 {
-    int success = 0, failure = 0;
-    for (auto& child : node->children)
-    {
-        BTResult r = ExecuteNode(child);
-        if (r == BTResult::SUCCESS) success++;
-        else if (r == BTResult::FAILURE) failure++;
-    }
-    if (success == (int)node->children.size()) return BTResult::SUCCESS;
-    if (failure > 0) return BTResult::FAILURE;
-    return BTResult::RUNNING;
+	int nSuccess = 0, nFailure = 0;
+	for (auto& child : node->children)
+	{
+		BTResult r = ExecuteNode(child);
+		if (r == BTResult::SUCCESS) nSuccess++;
+		else if (r == BTResult::FAILURE) nFailure++;
+	}
+	// 全部成功才成功；任一失败即失败；否则 RUNNING
+	if (nSuccess == (int)node->children.size()) return BTResult::SUCCESS;
+	if (nFailure > 0) return BTResult::FAILURE;
+	return BTResult::RUNNING;
 }
 
+// GameServer CBTRandom::Execute 始终返回 SUCCESS（仅执行随机子节点的副作用）
 BTResult BTEngine::ExecuteRandom(std::shared_ptr<BTNode> node)
 {
-    if (node->children.empty()) return BTResult::FAILURE;
-    int idx = m_rng() % node->children.size();
-    return ExecuteNode(node->children[idx]);
+	if (node->children.empty()) return BTResult::SUCCESS;
+	int idx = (int)(m_rng() % node->children.size());
+	ExecuteNode(node->children[idx]);
+	return BTResult::SUCCESS;
 }
 
+// GameServer CBTProbability 仅持有单个子节点 m_pChild
 BTResult BTEngine::ExecuteProbability(std::shared_ptr<BTNode> node)
 {
-    auto it = node->params.find(L"chance");
-    int chance = it != node->params.end() ? SafeStoi(it->second, 50) : 50;
-    if ((int)(m_rng() % 100) < chance)
-    {
-        BTResult r = BTResult::SUCCESS;
-        for (auto& child : node->children)
-            r = ExecuteNode(child);
-        return r;
-    }
-    return BTResult::FAILURE;
+	auto it = node->params.find(L"chance");
+	int chance = it != node->params.end() ? SafeStoi(it->second, 50) : 50;
+	if (chance < 0) chance = 0;
+	if (chance > 100) chance = 100;
+	if ((int)(m_rng() % 100) < chance)
+	{
+		if (!node->children.empty())
+			return ExecuteNode(node->children[0]);   // 仅执行第一个子节点
+		return BTResult::SUCCESS;
+	}
+	return BTResult::FAILURE;
 }
 
+// GameServer CBTMemSequence: FAILURE 记住当前索引（下 tick 重试该节点），RUNNING 直接返回
 BTResult BTEngine::ExecuteMemSequence(std::shared_ptr<BTNode> node)
 {
-    size_t startIdx = 0;
-    auto it = m_memPositions.find(node->id);
-    if (it != m_memPositions.end()) startIdx = it->second;
+	size_t startIdx = 0;
+	auto it = m_memPositions.find(node->id);
+	if (it != m_memPositions.end()) startIdx = it->second;
 
-    for (size_t i = startIdx; i < node->children.size(); i++)
-    {
-        BTResult r = ExecuteNode(node->children[i]);
-        if (r != BTResult::SUCCESS)
-        {
-            m_memPositions[node->id] = i;
-            return r;
-        }
-    }
-    m_memPositions.erase(node->id);
-    return BTResult::SUCCESS;
+	for (size_t i = startIdx; i < node->children.size(); i++)
+	{
+		BTResult r = ExecuteNode(node->children[i]);
+		if (r == BTResult::FAILURE)
+		{
+			m_memPositions[node->id] = i;   // 记住失败位置，下 tick 从此重试
+			return BTResult::FAILURE;
+		}
+		if (r == BTResult::RUNNING)
+			return BTResult::RUNNING;       // 保留 startIdx，下 tick 继续
+	}
+	m_memPositions.erase(node->id);
+	return BTResult::SUCCESS;
 }
 
+// GameServer CBTMemSelector: SUCCESS 记住当前索引（下 tick 从该节点继续），RUNNING 直接返回
 BTResult BTEngine::ExecuteMemSelector(std::shared_ptr<BTNode> node)
 {
-    size_t startIdx = 0;
-    auto it = m_memPositions.find(node->id);
-    if (it != m_memPositions.end()) startIdx = it->second;
+	size_t startIdx = 0;
+	auto it = m_memPositions.find(node->id);
+	if (it != m_memPositions.end()) startIdx = it->second;
 
-    for (size_t i = startIdx; i < node->children.size(); i++)
-    {
-        BTResult r = ExecuteNode(node->children[i]);
-        if (r == BTResult::SUCCESS)
-        {
-            m_memPositions.erase(node->id);
-            return BTResult::SUCCESS;
-        }
-    }
-    m_memPositions.erase(node->id);
-    return BTResult::FAILURE;
+	for (size_t i = startIdx; i < node->children.size(); i++)
+	{
+		BTResult r = ExecuteNode(node->children[i]);
+		if (r == BTResult::SUCCESS)
+		{
+			m_memPositions[node->id] = i;   // 记住成功位置
+			return BTResult::SUCCESS;
+		}
+		if (r == BTResult::RUNNING)
+			return BTResult::RUNNING;
+	}
+	m_memPositions.erase(node->id);
+	return BTResult::FAILURE;
 }
 
+// ============================================================================
+// 装饰节点 - 语义与 GameServer BotBehaviorDecorator.cpp 对齐
+// 时间相关装饰器使用 m_ctx.frameTime 模拟游戏帧时间
+// ============================================================================
 BTResult BTEngine::ExecuteInverter(std::shared_ptr<BTNode> node)
 {
-    if (node->children.empty()) return BTResult::FAILURE;
-    BTResult r = ExecuteNode(node->children[0]);
-    if (r == BTResult::SUCCESS) return BTResult::FAILURE;
-    if (r == BTResult::FAILURE) return BTResult::SUCCESS;
-    return r;
+	if (node->children.empty()) return BTResult::FAILURE;
+	BTResult r = ExecuteNode(node->children[0]);
+	switch (r)
+	{
+	case BTResult::SUCCESS: return BTResult::FAILURE;
+	case BTResult::FAILURE: return BTResult::SUCCESS;
+	default: return BTResult::RUNNING;
+	}
 }
 
+// GameServer CBTDecoratorRepeat: 重复执行直到子节点返回 FAILURE，失败时返回 SUCCESS
+// m_nMaxRepeat=0 表示无限（调试器用硬限制 100 防死循环，与服务端一致）
 BTResult BTEngine::ExecuteDecoratorRepeat(std::shared_ptr<BTNode> node)
 {
-    if (node->children.empty()) return BTResult::FAILURE;
-    auto it = node->params.find(L"count");
-    int count = it != node->params.end() ? SafeStoi(it->second, 1) : 1;
-    int maxIter = count == 0 ? 3 : count;
-    BTResult last = BTResult::SUCCESS;
-    for (int i = 0; i < maxIter; i++)
-    {
-        last = ExecuteNode(node->children[0]);
-        if (last != BTResult::SUCCESS) return last;
-    }
-    return last;
+	if (node->children.empty()) return BTResult::FAILURE;
+	auto it = node->params.find(L"count");
+	int count = it != node->params.end() ? SafeStoi(it->second, 0) : 0;
+	const int HARD_LIMIT = 100;
+	int nEffectiveMax = (count > 0) ? count : HARD_LIMIT;
+
+	for (int i = 0; i < nEffectiveMax; i++)
+	{
+		BTResult r = ExecuteNode(node->children[0]);
+		if (r == BTResult::FAILURE)
+			return BTResult::SUCCESS;   // 重复直到失败，失败时返回 SUCCESS
+		if (r == BTResult::RUNNING)
+			return BTResult::RUNNING;
+	}
+	return BTResult::SUCCESS;
 }
 
+// GameServer CBTDecoratorTimeout: 累计计时，超过 ms 则失败；ms=0 透传
 BTResult BTEngine::ExecuteDecoratorTimeout(std::shared_ptr<BTNode> node)
 {
-    if (node->children.empty()) return BTResult::FAILURE;
-    return ExecuteNode(node->children[0]);
+	if (node->children.empty()) return BTResult::FAILURE;
+	auto it = node->params.find(L"ms");
+	DWORD dwTimeout = it != node->params.end() ? (DWORD)SafeStoi(it->second, 5000) : 5000;
+	if (dwTimeout == 0)
+		return ExecuteNode(node->children[0]);
+
+	// 使用节点 id 作为状态键，记录起始时间
+	const std::wstring key = node->id + L"_TO_START";
+	DWORD dwNow = m_ctx.frameTime;
+	DWORD dwStart = 0;
+	auto sit = m_decoratorState.find(key);
+	if (sit != m_decoratorState.end()) dwStart = sit->second;
+
+	if (dwStart == 0)
+	{
+		dwStart = dwNow;
+		m_decoratorState[key] = dwStart;
+	}
+
+	if (dwNow - dwStart >= dwTimeout)
+	{
+		m_decoratorState.erase(key);   // 超时重置
+		return BTResult::FAILURE;
+	}
+
+	BTResult r = ExecuteNode(node->children[0]);
+	if (r == BTResult::SUCCESS || r == BTResult::FAILURE)
+		m_decoratorState.erase(key);   // 子节点结束，重置计时
+	return r;
 }
 
+// GameServer CBTDecoratorCooldown: 冷却时间内返回 FAILURE
 BTResult BTEngine::ExecuteDecoratorCooldown(std::shared_ptr<BTNode> node)
 {
-    if (node->children.empty()) return BTResult::FAILURE;
-    return ExecuteNode(node->children[0]);
+	if (node->children.empty()) return BTResult::FAILURE;
+	auto it = node->params.find(L"ms");
+	DWORD dwCooldown = it != node->params.end() ? (DWORD)SafeStoi(it->second, 3000) : 3000;
+
+	const std::wstring key = node->id + L"_CD_LAST";
+	DWORD dwNow = m_ctx.frameTime;
+	DWORD dwLast = 0;
+	auto sit = m_decoratorState.find(key);
+	if (sit != m_decoratorState.end()) dwLast = sit->second;
+
+	if (dwLast > 0 && (dwNow - dwLast) < dwCooldown)
+		return BTResult::FAILURE;
+
+	m_decoratorState[key] = dwNow;
+	return ExecuteNode(node->children[0]);
+}
+
+// GameServer CBTDecoratorPeriodic: 每 ms 触发一次子节点并返回真实结果，周期内返回 FAILURE
+BTResult BTEngine::ExecuteDecoratorPeriodic(std::shared_ptr<BTNode> node)
+{
+	if (node->children.empty()) return BTResult::FAILURE;
+	auto it = node->params.find(L"ms");
+	DWORD dwPeriod = it != node->params.end() ? (DWORD)SafeStoi(it->second, 30000) : 30000;
+	if (dwPeriod == 0) return BTResult::FAILURE;
+
+	const std::wstring key = node->id + L"_P_LAST";
+	DWORD dwNow = m_ctx.frameTime;
+	DWORD dwLast = 0;
+	auto sit = m_decoratorState.find(key);
+	if (sit != m_decoratorState.end()) dwLast = sit->second;
+
+	DWORD dwElapsed = (dwLast > 0) ? (dwNow - dwLast) : dwPeriod;
+	if (dwElapsed < dwPeriod)
+		return BTResult::FAILURE;   // 周期未到，让上层 Selector 继续
+
+	m_decoratorState[key] = dwNow;
+	return ExecuteNode(node->children[0]);
 }
 
 BTResult BTEngine::ExecuteSucceeder(std::shared_ptr<BTNode> node)
 {
-    if (!node->children.empty())
-        ExecuteNode(node->children[0]);
-    return BTResult::SUCCESS;
+	if (!node->children.empty())
+		ExecuteNode(node->children[0]);
+	return BTResult::SUCCESS;
 }
 
 BTResult BTEngine::ExecuteFailer(std::shared_ptr<BTNode> node)
 {
-    if (!node->children.empty())
-        ExecuteNode(node->children[0]);
-    return BTResult::FAILURE;
+	if (!node->children.empty())
+		ExecuteNode(node->children[0]);
+	return BTResult::FAILURE;
 }
 
+// ============================================================================
+// 条件节点 - 基于 ExecutionContext 模拟判定，覆盖全部 17 种条件
+// ============================================================================
 BTResult BTEngine::ExecuteCondition(std::shared_ptr<BTNode> node)
 {
-    switch (node->conditionType)
-    {
-    case ConditionType::LOW_HP:
-    {
-        auto it = node->params.find(L"percent");
-        int pct = it != node->params.end() ? SafeStoi(it->second, 50) : 50;
-        return m_ctx.hpPercent < pct ? BTResult::SUCCESS : BTResult::FAILURE;
-    }
-    case ConditionType::LOW_MP:
-    {
-        auto it = node->params.find(L"percent");
-        int pct = it != node->params.end() ? SafeStoi(it->second, 50) : 50;
-        return m_ctx.mpPercent < pct ? BTResult::SUCCESS : BTResult::FAILURE;
-    }
-    case ConditionType::HAS_TARGET:
-        return m_ctx.hasTarget ? BTResult::SUCCESS : BTResult::FAILURE;
-    case ConditionType::IN_SAFE_AREA:
-        return m_ctx.inSafeArea ? BTResult::SUCCESS : BTResult::FAILURE;
-    case ConditionType::BAG_FULL:
-        return m_ctx.bagFull ? BTResult::SUCCESS : BTResult::FAILURE;
-    case ConditionType::HAS_ITEM:
-        return m_ctx.hasItem ? BTResult::SUCCESS : BTResult::FAILURE;
-    case ConditionType::SKILL_READY:
-        return m_ctx.skillReady ? BTResult::SUCCESS : BTResult::FAILURE;
-    case ConditionType::IS_DEAD:
-        return m_ctx.isDead ? BTResult::SUCCESS : BTResult::FAILURE;
-    case ConditionType::TARGET_DISTANCE:
-    {
-        auto itMin = node->params.find(L"min");
-        auto itMax = node->params.find(L"max");
-        int min = itMin != node->params.end() ? SafeStoi(itMin->second, 0) : 0;
-        int max = itMax != node->params.end() ? SafeStoi(itMax->second, 10) : 10;
-        return (m_ctx.targetDistance >= min && m_ctx.targetDistance <= max) ? BTResult::SUCCESS : BTResult::FAILURE;
-    }
-    case ConditionType::MONSTER_COUNT:
-    {
-        auto it = node->params.find(L"count");
-        int cnt = it != node->params.end() ? SafeStoi(it->second, 0) : 0;
-        return m_ctx.monsterCount >= cnt ? BTResult::SUCCESS : BTResult::FAILURE;
-    }
-    default:
-        return (m_rng() % 2 == 0) ? BTResult::SUCCESS : BTResult::FAILURE;
-    }
+	auto getParam = [&](const std::wstring& key, int defVal) -> int {
+		auto it = node->params.find(key);
+		return it != node->params.end() ? SafeStoi(it->second, defVal) : defVal;
+	};
+
+	switch (node->conditionType)
+	{
+	case ConditionType::LOW_HP:
+		return m_ctx.hpPercent < getParam(L"percent", 30) ? BTResult::SUCCESS : BTResult::FAILURE;
+	case ConditionType::LOW_MP:
+		return m_ctx.mpPercent < getParam(L"percent", 20) ? BTResult::SUCCESS : BTResult::FAILURE;
+	case ConditionType::HAS_TARGET:
+		return m_ctx.hasTarget ? BTResult::SUCCESS : BTResult::FAILURE;
+	case ConditionType::IN_SAFE_AREA:
+		return m_ctx.inSafeArea ? BTResult::SUCCESS : BTResult::FAILURE;
+	case ConditionType::BAG_FULL:
+		return m_ctx.bagFull ? BTResult::SUCCESS : BTResult::FAILURE;
+	case ConditionType::HAS_ITEM:
+		return m_ctx.hasItem ? BTResult::SUCCESS : BTResult::FAILURE;
+	case ConditionType::SKILL_READY:
+		return m_ctx.skillReady ? BTResult::SUCCESS : BTResult::FAILURE;
+	case ConditionType::IS_DEAD:
+		return m_ctx.isDead ? BTResult::SUCCESS : BTResult::FAILURE;
+	case ConditionType::TARGET_DISTANCE:
+	{
+		int nMin = getParam(L"minDist", 0);
+		int nMax = getParam(L"maxDist", 16);
+		return (m_ctx.targetDistance >= nMin && m_ctx.targetDistance <= nMax) ? BTResult::SUCCESS : BTResult::FAILURE;
+	}
+	case ConditionType::TARGET_TYPE:
+		return m_ctx.targetType == getParam(L"targetType", 0) ? BTResult::SUCCESS : BTResult::FAILURE;
+	case ConditionType::HAS_BUFF:
+		return m_ctx.hasBuff ? BTResult::SUCCESS : BTResult::FAILURE;
+	case ConditionType::HAS_NEARBY_PLAYER:
+		return m_ctx.hasNearbyPlayer ? BTResult::SUCCESS : BTResult::FAILURE;
+	case ConditionType::MONSTER_COUNT:
+	{
+		int nMode = getParam(L"mode", 0);
+		int nCount = getParam(L"count", 3);
+		switch (nMode)
+		{
+		case 1:  return m_ctx.monsterCount <= nCount ? BTResult::SUCCESS : BTResult::FAILURE; // <=
+		case 2:  return m_ctx.monsterCount == nCount ? BTResult::SUCCESS : BTResult::FAILURE; // ==
+		default: return m_ctx.monsterCount >= nCount ? BTResult::SUCCESS : BTResult::FAILURE; // >=
+		}
+	}
+	case ConditionType::HAS_POTION:
+		// hpType=1 检查 HP 药水，hpType=0 检查 MP 药水
+		return getParam(L"hpType", 1) != 0 ? (m_ctx.hasPotionHP ? BTResult::SUCCESS : BTResult::FAILURE)
+		                                   : (m_ctx.hasPotionMP ? BTResult::SUCCESS : BTResult::FAILURE);
+	case ConditionType::HAS_DROPPED_ITEM:
+		return m_ctx.hasDroppedItem ? BTResult::SUCCESS : BTResult::FAILURE;
+	case ConditionType::HP_RANGE:
+	{
+		int nMin = getParam(L"minPercent", 0);
+		int nMax = getParam(L"maxPercent", 100);
+		return (m_ctx.hpPercent >= nMin && m_ctx.hpPercent <= nMax) ? BTResult::SUCCESS : BTResult::FAILURE;
+	}
+	case ConditionType::TIME_OF_DAY:
+		return m_ctx.timeOfDay == getParam(L"period", 0) ? BTResult::SUCCESS : BTResult::FAILURE;
+	default:
+		return BTResult::FAILURE;
+	}
 }
 
+// ============================================================================
+// 动作节点 - 调试器无真实游戏世界，依据上下文可行性给出模拟结果
+// 复合节点（如 Sequence）会因动作返回 FAILURE 而提前结束，模拟结果应尽量直观
+// ============================================================================
 BTResult BTEngine::ExecuteAction(std::shared_ptr<BTNode> node)
 {
-    return (m_rng() % 100 < 85) ? BTResult::SUCCESS : BTResult::FAILURE;
+	auto getParam = [&](const std::wstring& key, int defVal) -> int {
+		auto it = node->params.find(key);
+		return it != node->params.end() ? SafeStoi(it->second, defVal) : defVal;
+	};
+
+	switch (node->actionType)
+	{
+	// 复活：死亡后延迟 delay 毫秒才复活成功(RUNNING 等待)
+	// 参数: delay(默认0) hpPercent(复活后HP) teleportHome(是否回城)
+	case ActionType::REVIVE:
+	{
+		if (!m_ctx.isDead) return BTResult::FAILURE;
+		int delay = getParam(L"delay", 0);
+		if (delay <= 0) return BTResult::SUCCESS;  // 无延迟立即复活
+		const std::wstring key = node->id + L"_REVIVE_START";
+		DWORD dwNow = m_ctx.frameTime;
+		auto sit = m_decoratorState.find(key);
+		if (sit == m_decoratorState.end())
+		{
+			m_decoratorState[key] = dwNow;
+			return BTResult::RUNNING;  // 开始等待复活
+		}
+		if (dwNow - sit->second >= (DWORD)delay)
+		{
+			m_decoratorState.erase(key);
+			return BTResult::SUCCESS;  // 延迟到期,复活成功
+		}
+		return BTResult::RUNNING;  // 仍在等待
+	}
+	// 喝药：背包有对应药水才成功
+	case ActionType::USE_POTION:
+		return getParam(L"hpType", 1) != 0 ? (m_ctx.hasPotionHP ? BTResult::SUCCESS : BTResult::FAILURE)
+		                                   : (m_ctx.hasPotionMP ? BTResult::SUCCESS : BTResult::FAILURE);
+	// 使用道具/穿戴：持有物品才成功
+	case ActionType::USE_ITEM:
+	case ActionType::EQUIP_ITEM:
+		return m_ctx.hasItem ? BTResult::SUCCESS : BTResult::FAILURE;
+	// 攻击/移向目标/定向攻击/精确施法：需要有目标
+	case ActionType::ATTACK:
+	case ActionType::MOVE_TO_TARGET:
+	case ActionType::ATTACK_DIR:
+	case ActionType::SPELL_CAST:
+		return m_ctx.hasTarget ? BTResult::SUCCESS : BTResult::FAILURE;
+	// 使用技能：技能需就绪
+	case ActionType::USE_SKILL:
+		return m_ctx.skillReady ? BTResult::SUCCESS : BTResult::FAILURE;
+	// 拾取：地上需有掉落物
+	case ActionType::PICKUP_ITEM:
+		return m_ctx.hasDroppedItem ? BTResult::SUCCESS : BTResult::FAILURE;
+	// 逃跑：HP 越低越容易成功（模拟走位失误）
+	case ActionType::FLEE:
+		return (m_rng() % 100 < (90 - m_ctx.hpPercent / 4)) ? BTResult::SUCCESS : BTResult::FAILURE;
+	// 休息：持续 duration 毫秒后成功(RUNNING 等待)
+	case ActionType::REST:
+	{
+		int duration = getParam(L"duration", 5000);
+		if (duration <= 0) return BTResult::SUCCESS;
+		const std::wstring key = node->id + L"_REST_START";
+		DWORD dwNow = m_ctx.frameTime;
+		auto sit = m_decoratorState.find(key);
+		if (sit == m_decoratorState.end())
+		{
+			m_decoratorState[key] = dwNow;
+			return BTResult::RUNNING;  // 开始休息
+		}
+		if (dwNow - sit->second >= (DWORD)duration)
+		{
+			m_decoratorState.erase(key);
+			return BTResult::SUCCESS;  // 休息完成
+		}
+		return BTResult::RUNNING;  // 仍在休息
+	}
+	// 延迟：在 [minMs,maxMs] 随机选一时间等待(RUNNING)
+	case ActionType::DELAY:
+	{
+		int minMs = getParam(L"minMs", 200);
+		int maxMs = getParam(L"maxMs", 1000);
+		if (maxMs < minMs) maxMs = minMs;
+		const std::wstring key = node->id + L"_DELAY_START";
+		DWORD dwNow = m_ctx.frameTime;
+		auto sit = m_decoratorState.find(key);
+		if (sit == m_decoratorState.end())
+		{
+			// 首次进入:在[minMs,maxMs]随机选目标时长
+			int range = maxMs - minMs + 1;
+			DWORD target = (DWORD)(minMs + (range > 0 ? (m_rng() % range) : 0));
+			m_decoratorState[key] = dwNow;           // 记录开始时间
+			m_decoratorState[key + L"_T"] = target;   // 记录目标时长
+			return BTResult::RUNNING;
+		}
+		DWORD start = sit->second;
+		DWORD target = 1000;
+		auto tit = m_decoratorState.find(key + L"_T");
+		if (tit != m_decoratorState.end()) target = tit->second;
+		if (dwNow - start >= target)
+		{
+			m_decoratorState.erase(key);
+			m_decoratorState.erase(key + L"_T");
+			return BTResult::SUCCESS;
+		}
+		return BTResult::RUNNING;
+	}
+	// 挖矿：持续 duration 毫秒后成功(RUNNING 等待)
+	case ActionType::MINE:
+	{
+		int duration = getParam(L"duration", 10000);
+		if (duration <= 0) return BTResult::SUCCESS;
+		const std::wstring key = node->id + L"_MINE_START";
+		DWORD dwNow = m_ctx.frameTime;
+		auto sit = m_decoratorState.find(key);
+		if (sit == m_decoratorState.end())
+		{
+			m_decoratorState[key] = dwNow;
+			return BTResult::RUNNING;
+		}
+		if (dwNow - sit->second >= (DWORD)duration)
+		{
+			m_decoratorState.erase(key);
+			return BTResult::SUCCESS;
+		}
+		return BTResult::RUNNING;
+	}
+	// 回城：读卷轴延迟 1000ms 后成功(RUNNING)
+	case ActionType::RECALL:
+	{
+		const std::wstring key = node->id + L"_RECALL_START";
+		DWORD dwNow = m_ctx.frameTime;
+		auto sit = m_decoratorState.find(key);
+		if (sit == m_decoratorState.end())
+		{
+			m_decoratorState[key] = dwNow;
+			return BTResult::RUNNING;
+		}
+		if (dwNow - sit->second >= 1000)
+		{
+			m_decoratorState.erase(key);
+			return BTResult::SUCCESS;
+		}
+		return BTResult::RUNNING;
+	}
+	// 其余动作（巡逻/聊天/说话/丢弃/召唤/跟随/组队/切攻击模式）：常态成功
+	default:
+		return BTResult::SUCCESS;
+	}
 }
 
 // ============================================================================
@@ -623,20 +913,21 @@ std::string XMLParser::SerializeTree(std::shared_ptr<BTNode> root, const std::ws
     if (!root) return "";
 
     std::wostringstream wss;
-    wss << L"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n";
+    wss << L"<?xml version=\"1.0\" encoding=\"GBK\"?>\r\n";
     wss << L"<BehaviorTree name=\"" << treeName << L"\">\r\n";
     SerializeNode(wss, root, 1);
     wss << L"</BehaviorTree>\r\n";
 
     std::wstring wx = wss.str();
-    // 输出 UTF-8（带 BOM 兼容大多数编辑器）
+    // 输出纯 GBK（不带 BOM），与 GameServer 端 BotBehavior_*.xml 配置完全对齐
+    // tinyxml 在 GameServer 端按 GBK 解析，避免 BOM + encoding 不一致导致乱码
     std::string result;
-    result.push_back('\xEF'); result.push_back('\xBB'); result.push_back('\xBF'); // BOM
-    int len = WideCharToMultiByte(CP_UTF8, 0, wx.c_str(), (int)wx.size(), nullptr, 0, nullptr, nullptr);
+    // 不写入 BOM，保持与 GameServer 配置一致
+    int len = WideCharToMultiByte(936, 0, wx.c_str(), (int)wx.size(), nullptr, 0, nullptr, nullptr);
     if (len > 0)
     {
-        result.resize(3 + len);
-        WideCharToMultiByte(CP_UTF8, 0, wx.c_str(), (int)wx.size(), &result[3], len, nullptr, nullptr);
+        result.resize(len);
+        WideCharToMultiByte(936, 0, wx.c_str(), (int)wx.size(), &result[0], len, nullptr, nullptr);
     }
     return result;
 }

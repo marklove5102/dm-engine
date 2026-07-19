@@ -25,6 +25,7 @@ VOID CDownItemObject::Clean()
 	memset(&m_Item, 0, sizeof(ITEM));
 	SetActionObject(nullptr);
 	m_nScriptTimes = 0;
+	CMapObject::Clean();
 }
 
 BOOL CDownItemObject::GetViewmsg(char* pszMsg, int& length, CMapObject* pViewer)
@@ -106,22 +107,22 @@ VOID CDownItemObject::OnEnterMap(CLogicMap* pMap)
 {
 	CMapObject::OnEnterMap(pMap);
 	int mx = getX(), my = getY();
-	for (int x = -12; x <= 12; x++)
+	// ËÑË÷·¶Î§ÓëÍæ¼ÒÊÓÒ°ËÑË÷·¶Î§ VIEW_SEARCH_RANGE ±£³ÖÒ»ÖÂ
+	for (int x = -VIEW_SEARCH_RANGE; x <= VIEW_SEARCH_RANGE; x++)
 	{
-		for (int y = -12; y <= 12; y++)
+		for (int y = -VIEW_SEARCH_RANGE; y <= VIEW_SEARCH_RANGE; y++)
 		{
 			CMapCellInfo* pInfo = pMap->GetMapCellInfoShared(mx + x, my + y);
 			if (pInfo && pInfo->m_xObjectList.getCount() > 0)
 			{
-				xListHost<CMapObject>::xListNode* pNode = pInfo->m_xObjectList.getHead();
-				while (pNode)
+				xListHelper<CMapObject> helper(&pInfo->m_xObjectList);
+				for (CMapObject* pObj = helper.first(); pObj != nullptr; pObj = helper.next())
 				{
-					if (pNode->getObject()->GetClassType() == CLS_ALIVEOBJECT)
+					if (pObj->GetClassType() == CLS_ALIVEOBJECT)
 					{
-						if (((CAliveObject*)pNode->getObject())->GetVisibleObjectFlag() & (1 << GetType()))
-							((CAliveObject*)pNode->getObject())->UpdateVisibleObject(this);
+						if (((CAliveObject*)pObj)->GetVisibleObjectFlag() & (1 << GetType()))
+							((CAliveObject*)pObj)->UpdateVisibleObject(this);
 					}
-					pNode = pNode->getNext();
 				}
 			}
 		}
@@ -133,22 +134,22 @@ VOID CDownItemObject::OnLeaveMap(CLogicMap* pMap)
 {
 	CMapObject::OnLeaveMap(pMap);
 	int mx = getX(), my = getY();
-	for (int x = -12; x <= 12; x++)
+	// ËÑË÷·¶Î§ÓëÍæ¼ÒÊÓÒ°ËÑË÷·¶Î§ VIEW_SEARCH_RANGE ±£³ÖÒ»ÖÂ
+	for (int x = -VIEW_SEARCH_RANGE; x <= VIEW_SEARCH_RANGE; x++)
 	{
-		for (int y = -12; y <= 12; y++)
+		for (int y = -VIEW_SEARCH_RANGE; y <= VIEW_SEARCH_RANGE; y++)
 		{
 			CMapCellInfo* pInfo = pMap->GetMapCellInfoShared(mx + x, my + y);
 			if (pInfo && pInfo->m_xObjectList.getCount() > 0)
 			{
-				xListHost<CMapObject>::xListNode* pNode = pInfo->m_xObjectList.getHead();
-				while (pNode)
+				xListHelper<CMapObject> helper(&pInfo->m_xObjectList);
+				for (CMapObject* pObj = helper.first(); pObj != nullptr; pObj = helper.next())
 				{
-					if (pNode->getObject()->GetClassType() == CLS_ALIVEOBJECT)
+					if (pObj->GetClassType() == CLS_ALIVEOBJECT)
 					{
-						if (((CAliveObject*)pNode->getObject())->GetVisibleObjectFlag() & (1 << GetType()))
-							((CAliveObject*)pNode->getObject())->RemoveVisibleObject(this);
+						if (((CAliveObject*)pObj)->GetVisibleObjectFlag() & (1 << GetType()))
+							((CAliveObject*)pObj)->RemoveVisibleObject(this);
 					}
-					pNode = pNode->getNext();
 				}
 			}
 		}

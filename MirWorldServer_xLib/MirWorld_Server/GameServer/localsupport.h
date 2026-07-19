@@ -1,6 +1,5 @@
 #pragma	once
 
-#include <atomic>
 #include <array>
 #include <charconv>
 #include <string_view>
@@ -17,34 +16,16 @@ public:
 	}
 	UINT allocid()
 	{
-		UINT count = m_nCacheCount.load(std::memory_order_acquire);
-		while (count > 0)
-		{
-			if (m_nCacheCount.compare_exchange_weak(count, count - 1,
-				std::memory_order_acquire, std::memory_order_relaxed))
-			{
-				return m_IdCache[count - 1];
-			}
-		}
-		return m_nIdPtr.fetch_add(1, std::memory_order_acq_rel) + 1;
+		if (m_nCacheCount > 0)
+			return m_IdCache[--m_nCacheCount];
+		return (++m_nIdPtr);
 	}
 	VOID freeid(UINT id)
 	{
-		UINT expected = id;
-		if (m_nIdPtr.compare_exchange_strong(expected, id - 1,
-			std::memory_order_acq_rel, std::memory_order_relaxed))
-			return;
-
-		UINT count = m_nCacheCount.load(std::memory_order_relaxed);
-		while (count < MAXCOUNT)
-		{
-			if (m_nCacheCount.compare_exchange_weak(count, count + 1,
-				std::memory_order_release, std::memory_order_relaxed))
-			{
-				m_IdCache[count] = id;
-				return;
-			}
-		}
+		if (id == m_nIdPtr)
+			m_nIdPtr--;
+		else if (m_nCacheCount < MAXCOUNT)
+			m_IdCache[m_nCacheCount++] = id;
 	}
 	BOOL isused(UINT id)
 	{
@@ -52,15 +33,15 @@ public:
 	}
 private:
 	std::array<UINT, MAXCOUNT> m_IdCache;
-	std::atomic<UINT> m_nCacheCount;
-	std::atomic<UINT> m_nIdPtr;
+	UINT m_nCacheCount;
+	UINT m_nIdPtr;
 };
 
 template<int MAXCOUNT>
 class xIdAllocor
 {
 public:
-	xIdAllocor() : m_head(0), m_iCount(0)
+	xIdAllocor() : m_iFree(0), m_iCount(0)
 	{
 		for (UINT i = 0; i < MAXCOUNT; i++)
 		{
@@ -69,52 +50,32 @@ public:
 	}
 	UINT allocid()
 	{
-		UINT64 head = m_head.load(std::memory_order_acquire);
-		while (true)
-		{
-			UINT free = static_cast<UINT>(head & 0xFFFFFFFFULL);
-			if (free >= MAXCOUNT) return 0;
-			UINT next = m_NextFree[free];
-			UINT64 newHead = ((head + 0x100000000ULL) & 0xFFFFFFFF00000000ULL) | next;
-			if (m_head.compare_exchange_weak(head, newHead,
-				std::memory_order_acquire, std::memory_order_relaxed))
-			{
-				UINT id = free + 1;
-				m_NextFree[id - 1] = 0xffffffff;
-				m_iCount.fetch_add(1, std::memory_order_release);
-				return id;
-			}
-		}
+		if (m_iFree >= MAXCOUNT) return 0;
+		UINT id = m_iFree + 1;
+		m_iFree = m_NextFree[m_iFree];
+		m_NextFree[id - 1] = 0xffffffff;
+		m_iCount++;
+		return id;
 	}
 	VOID freeid(UINT id)
 	{
 		if (id == 0 || id > MAXCOUNT) return;
-		UINT idx = id - 1;
-		if (m_NextFree[idx] != 0xffffffff) return;
-		UINT64 head = m_head.load(std::memory_order_relaxed);
-		while (true)
-		{
-			UINT free = static_cast<UINT>(head & 0xFFFFFFFFULL);
-			m_NextFree[idx] = free;
-			UINT64 newHead = (head & 0xFFFFFFFF00000000ULL) | idx;
-			if (m_head.compare_exchange_weak(head, newHead,
-				std::memory_order_release, std::memory_order_relaxed))
-			{
-				m_iCount.fetch_sub(1, std::memory_order_release);
-				return;
-			}
-		}
+		id--;
+		if (m_NextFree[id] != 0xffffffff) return;
+		m_NextFree[id] = m_iFree;
+		m_iFree = id;
+		m_iCount--;
 	}
 	BOOL isused(UINT id)
 	{
 		return (id > 0 && id <= MAXCOUNT && m_NextFree[id - 1] == 0xffffffff);
 	}
-	UINT getcount() { return m_iCount.load(std::memory_order_acquire); }
-	BOOL isfull() { return (m_iCount.load(std::memory_order_acquire) >= MAXCOUNT); }
+	UINT getcount() { return m_iCount; }
+	BOOL isfull() { return (m_iCount >= MAXCOUNT); }
 private:
 	std::array<UINT, MAXCOUNT + 1> m_NextFree;
-	std::atomic<UINT64> m_head;		// low 32: m_iFree, high 32: ABA version tag
-	std::atomic<UINT> m_iCount;
+	UINT m_iFree;
+	UINT m_iCount;
 };
 
 template<class T>
@@ -357,7 +318,6 @@ static int GetMsgFromString(std::string_view sv, char* pMsgBuffer)
 	char* pMsg = pMsgBuffer;
 	std::array<char, 1024> szBinBuffer{};
 	int binPtr = 0;
-	const int binCap = static_cast<int>(szBinBuffer.size()); // 缓冲区容量上限, 用于边界校验防溢出
 
 	// 使用 string_view 按 '|' 分割，不修改原始字符串
 	std::array<std::string_view, 200> tokens{};
@@ -394,7 +354,6 @@ static int GetMsgFromString(std::string_view sv, char* pMsgBuffer)
 
 	for (int i = 5; i < nParam; i++)
 	{
-		if (binPtr >= binCap) break; // 缓冲区已满, 终止写入防溢出
 		auto token = tokens[i];
 		if (token.size() >= 2 && token[1] == ':')
 		{
@@ -403,31 +362,20 @@ static int GetMsgFromString(std::string_view sv, char* pMsgBuffer)
 			switch (typeChar)
 			{
 			case 'w': case 'W':
-				if (binPtr + 2 > binCap) { binPtr = binCap; break; } // 越界则标记满并跳出
 				*reinterpret_cast<WORD*>(szBinBuffer.data() + binPtr) = static_cast<WORD>(svToInt(value));
 				binPtr += 2;
 				break;
 			case 'D': case 'd':
-				if (binPtr + 4 > binCap) { binPtr = binCap; break; }
 				*reinterpret_cast<DWORD*>(szBinBuffer.data() + binPtr) = static_cast<DWORD>(svToInt(value));
 				binPtr += 4;
 				break;
 			case 'B': case 'b':
-				if (binPtr + 1 > binCap) { binPtr = binCap; break; }
 				*reinterpret_cast<BYTE*>(szBinBuffer.data() + binPtr) = static_cast<BYTE>(svToInt(value));
 				binPtr += 1;
 				break;
 			case 's': case 'S':
-				{
-					// 字符串写入: 超长则截断到剩余容量, 避免栈缓冲区溢出
-					int n = static_cast<int>(value.size());
-					if (n > binCap - binPtr) n = binCap - binPtr;
-					if (n > 0)
-					{
-						memcpy(szBinBuffer.data() + binPtr, value.data(), n);
-						binPtr += n;
-					}
-				}
+				memcpy(szBinBuffer.data() + binPtr, value.data(), value.size());
+				binPtr += static_cast<int>(value.size());
 				break;
 			default:
 				break;
@@ -435,20 +383,12 @@ static int GetMsgFromString(std::string_view sv, char* pMsgBuffer)
 			continue;
 		}
 		// 无类型前缀，直接作为字符串
-		{
-			int n = static_cast<int>(token.size());
-			if (n > binCap - binPtr) n = binCap - binPtr;
-			if (n > 0)
-			{
-				memcpy(szBinBuffer.data() + binPtr, token.data(), n);
-				binPtr += n;
-			}
-		}
+		memcpy(szBinBuffer.data() + binPtr, token.data(), token.size());
+		binPtr += static_cast<int>(token.size());
 	}
 	if (binPtr > 0)
 	{
-		if (binPtr < binCap)
-			*(szBinBuffer.data() + binPtr) = 0; // 仅在有空位时写结尾 0, 防越界
+		*(szBinBuffer.data() + binPtr) = 0;
 		pMsg += _CodeGameCode(reinterpret_cast<BYTE*>(szBinBuffer.data()), binPtr, reinterpret_cast<BYTE*>(pMsg));
 	}
 	*pMsg++ = '!';

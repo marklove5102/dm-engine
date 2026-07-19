@@ -1,6 +1,5 @@
 #pragma once
 #include "humanplayer.h"
-#include "VMProtectHelper.h"
 
 class CHumanPlayerMgr : public xSingletonClass<CHumanPlayerMgr>
 {
@@ -20,21 +19,16 @@ public:
 	//从名字集合中移除玩家
 	VOID RemovePlayerNameList(const char* pszName);
 	//注册机器人玩家到名字哈希（CBotPlayer由CBotManager管理，不走对象池）
-	BOOL RegisterBotPlayer(CHumanPlayer* pPlayer);
+	BOOL RegisterBotPlayer(CHumanPlayer* pPlayer, const char* pszName);
 	//从名字哈希中注销机器人玩家
-	VOID UnregisterBotPlayer(CHumanPlayer* pPlayer);
+	VOID UnregisterBotPlayer(const char* pszName);
 	//获取在线玩家数量
 	int getCount() { return m_HumanPlayers.GetCount(); }
 	//获取在线玩家列表
 	CIndexListEx<CHumanPlayer>* GetPlayerList() { return &m_HumanPlayers; }
-	//设置为测试模式
-	VOID SetTestMode() { m_boTest = Encrypt(TRUE); }
-	//是否是测试模式
-	BOOL IsTestMode() const { return Decrypt(m_boTest); }
 private:
 	CIndexListEx<CHumanPlayer> m_HumanPlayers;
 	CNameHash m_PlayerNameHash; // 所有玩家名字集合
-	BOOL m_boTest; // 是否是测试模式
 	//以下是 XOR 加密
 	static constexpr UINT KEY = 0xDEADBEEF;
 	static constexpr UINT Encrypt(BOOL val) { return (val ? 1 : 0) ^ KEY; }

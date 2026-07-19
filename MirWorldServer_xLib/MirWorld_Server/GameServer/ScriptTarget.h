@@ -54,12 +54,12 @@ class CScriptTargetForPlayer : public CScriptTarget
 {
 public:
 	CScriptTargetForPlayer(CHumanPlayer* pPlayer);
-	VOID SendPage(CScriptShell* pShell, CScriptView* pView);
-	VOID SendClosePage(CScriptShell* pShell);
-	char* GetVariableValue(const char* pszVariable);
-	VOID SetVariableValue(const char* pszVariable, const char* pszValue);
-	VOID ClrVariable(const char* pszVariable);
-	BOOL AddVariable(const char* pszVariable, const char* pszValue);
+	VOID SendPage(CScriptShell* pShell, CScriptView* pView) override;
+	VOID SendClosePage(CScriptShell* pShell) override;
+	char* GetVariableValue(const char* pszVariable) override;
+	VOID SetVariableValue(const char* pszVariable, const char* pszValue) override;
+	VOID ClrVariable(const char* pszVariable) override;
+	BOOL AddVariable(const char* pszVariable, const char* pszValue) override;
 	VOID Clean();
 	CHumanPlayer* GetOwner() { return m_pOwner; }
 	VOID SaveVars(const char* pszFilename);

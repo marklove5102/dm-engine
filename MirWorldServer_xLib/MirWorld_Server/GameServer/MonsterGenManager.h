@@ -10,19 +10,19 @@ class IMonsterSpawnStrategy
 {
 public:
 	virtual ~IMonsterSpawnStrategy() = default;
-	virtual bool SpawnMonster(class CMonsterGenManager* pMgr, MONSTERGEN* p, int& iSuccess, int maxcount, BOOL bSetGenPtr, BOOL bGotoTarget, WORD wTargetX, WORD wTargetY, int* initGenCount) = 0;
+	virtual VOID SpawnMonster(class CMonsterGenManager* pMgr, MONSTERGEN* p, int& iSuccess, int maxcount, BOOL bSetGenPtr, BOOL bGotoTarget, WORD wTargetX, WORD wTargetY, int* initGenCount) = 0;
 };
 // Ëæ»ú·¶Î§Ë¢¹Ö²ßÂÔ
 class CRandomRangeSpawnStrategy : public IMonsterSpawnStrategy
 {
 public:
-	virtual bool SpawnMonster(class CMonsterGenManager* pMgr, MONSTERGEN* p, int& iSuccess, int maxcount, BOOL bSetGenPtr, BOOL bGotoTarget, WORD wTargetX, WORD wTargetY, int* initGenCount) override;
+	VOID SpawnMonster(class CMonsterGenManager* pMgr, MONSTERGEN* p, int& iSuccess, int maxcount, BOOL bSetGenPtr, BOOL bGotoTarget, WORD wTargetX, WORD wTargetY, int* initGenCount) override;
 };
 // ÌØÊâÕó·¨Ë¢¹Ö²ßÂÔ
 class CSpecialFormationSpawnStrategy : public IMonsterSpawnStrategy
 {
 public:
-	virtual bool SpawnMonster(class CMonsterGenManager* pMgr, MONSTERGEN* p, int& iSuccess, int maxcount, BOOL bSetGenPtr, BOOL bGotoTarget, WORD wTargetX, WORD wTargetY, int* initGenCount) override;
+	VOID SpawnMonster(class CMonsterGenManager* pMgr, MONSTERGEN* p, int& iSuccess, int maxcount, BOOL bSetGenPtr, BOOL bGotoTarget, WORD wTargetX, WORD wTargetY, int* initGenCount) override;
 };
 
 class CMonsterGenManager : public CFindFile, public xSingletonClass<CMonsterGenManager>
